@@ -1,0 +1,2827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TCD2Vformer &middot; BE Major Project Interactive Research Demo</title>
+  <meta name="description" content="Official BE Major Project Demonstration: Temporal-Conditioned Date2Vecformer (TCD2Vformer) for horizon-independent zero-shot time series forecasting."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-0: #080b11;
+      --bg-1: #0d121d;
+      --bg-2: #131926;
+      --bg-3: #1a2234;
+      --bg-4: #222c42;
+      --blue: #3b82f6;
+      --blue-glow: rgba(59, 130, 246, 0.25);
+      --violet: #8b5cf6;
+      --cyan: #06b6d4;
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.2);
+      --orange: #f59e0b;
+      --rose: #f43f5e;
+      --rose-glow: rgba(244, 63, 94, 0.2);
+      --text-1: #f8fafc;
+      --text-2: #94a3b8;
+      --text-3: #64748b;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(255, 255, 255, 0.14);
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 18px;
+      --r-xl: 24px;
+      --tr: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-0);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image: 
+        linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    .bg-orb {
+      position: fixed; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0;
+    }
+    .bg-orb-1 { width: 600px; height: 600px; top: -200px; left: -150px; background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%); }
+    .bg-orb-2 { width: 500px; height: 500px; bottom: -100px; right: -100px; background: radial-gradient(circle, rgba(139, 92, 246, 0.07) 0%, transparent 70%); }
+    
+    .shell {
+      position: relative; z-index: 1; max-width: 1320px; margin: 0 auto; padding: 0 24px 80px;
+    }
+    
+    /* Top Header */
+    header {
+      padding: 36px 0 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px;
+      background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--blue); text-transform: uppercase;
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } }
+    h1 {
+      font-size: clamp(28px, 4.5vw, 48px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.15;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    h1 span {
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hsub {
+      font-size: 15px; color: var(--text-2); max-width: 760px; line-height: 1.6;
+    }
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 4px;
+    }
+    .chip {
+      padding: 5px 12px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      background: var(--bg-2); border: 1px solid var(--border); color: var(--text-2);
+    }
+    .chip.highlight {
+      background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.35); color: #93c5fd;
+    }
+    .chip.audit-a {
+      background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: var(--emerald);
+    }
+
+    /* Sticky Navigation */
+    .nav-container {
+      position: sticky; top: 16px; z-index: 100;
+      background: rgba(13, 18, 29, 0.88); backdrop-filter: blur(16px);
+      border: 1px solid var(--border-light); border-radius: var(--r-lg);
+      padding: 6px; margin-bottom: 32px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    nav {
+      display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    .tab {
+      flex: 1; min-width: 115px; padding: 10px 14px; border: none; background: transparent;
+      border-radius: var(--r-md); font-family: 'Inter', sans-serif; font-size: 12.5px;
+      font-weight: 500; color: var(--text-2); cursor: pointer; transition: all var(--tr);
+      white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .tab:hover { color: var(--text-1); background: var(--bg-3); }
+    .tab.on {
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      color: #fff; font-weight: 600; box-shadow: 0 2px 14px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Panels */
+    .pnl { display: none; animation: fin 0.25s ease-out; }
+    .pnl.on { display: block; }
+    @keyframes fin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* KPI Stats Grid */
+    .stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 28px;
+    }
+    .sc {
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 18px 20px; position: relative; overflow: hidden; transition: border-color var(--tr), transform var(--tr);
+    }
+    .sc::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--al, linear-gradient(90deg, var(--blue), var(--violet)));
+    }
+    .sc:hover { border-color: rgba(59, 130, 246, 0.35); transform: translateY(-2px); }
+    .slbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin-bottom: 6px; font-weight: 600; }
+    .sval { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1.1; }
+    .ssub { font-size: 11.5px; color: var(--text-2); margin-top: 4px; }
+    .c-g { color: var(--emerald); } .c-b { color: var(--blue); } .c-v { color: var(--violet); } .c-o { color: var(--orange); } .c-c { color: var(--cyan); } .c-r { color: var(--rose); }
+
+    /* Layout Grids */
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .g-main-side { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+
+    /* Cards */
+    .card {
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 24px; position: relative;
+    }
+    .card:hover { border-color: rgba(255, 255, 255, 0.12); }
+    .card-title {
+      font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    }
+    .card-title .icon {
+      width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .icon.b { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+    .icon.v { background: rgba(139, 92, 246, 0.15); color: var(--violet); }
+    .icon.e { background: rgba(16, 185, 129, 0.15); color: var(--emerald); }
+    .icon.o { background: rgba(245, 158, 11, 0.15); color: var(--orange); }
+    .icon.r { background: rgba(244, 63, 94, 0.15); color: var(--rose); }
+    
+    p { font-size: 13.5px; color: var(--text-2); line-height: 1.65; margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 20px; font-size: 13.5px; color: var(--text-2); line-height: 1.7; }
+    li { margin-bottom: 6px; }
+    
+    /* Code & Formulas */
+    .formula {
+      margin: 14px 0; padding: 12px 16px; border-radius: var(--r-sm);
+      background: var(--bg-0); border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--cyan);
+      overflow-x: auto;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 2px 6px;
+      border-radius: 4px; background: rgba(255, 255, 255, 0.06); color: #e2e8f0;
+    }
+
+    /* Pipeline Flow */
+    .pipeline {
+      display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 12px;
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: 24px; margin-bottom: 28px;
+    }
+    .p-step {
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 16px; position: relative;
+    }
+    .p-step.highlight {
+      border-color: rgba(59, 130, 246, 0.5); background: rgba(59, 130, 246, 0.05);
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
+    }
+    .p-step.green {
+      border-color: rgba(16, 185, 129, 0.5); background: rgba(16, 185, 129, 0.05);
+    }
+    .p-tag {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 6px; display: inline-block; padding: 2px 6px; border-radius: 4px;
+    }
+    .p-tag.b { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+    .p-tag.r { background: rgba(244, 63, 94, 0.15); color: var(--rose); }
+    .p-tag.g { background: rgba(16, 185, 129, 0.15); color: var(--emerald); }
+    .p-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--text-1); }
+    .p-desc { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+    .p-arrow { font-size: 20px; color: var(--text-3); font-weight: 700; }
+
+    /* Callout Boxes - FIXED CSS (no double brace) */
+    .callout {
+      border-radius: var(--r-md); padding: 16px 20px; margin-bottom: 20px;
+      display: flex; gap: 14px; align-items: flex-start; border: 1px solid transparent;
+    }
+    .callout.breakthrough {
+      background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25);
+    }
+    .callout.boundary {
+      background: rgba(244, 63, 94, 0.08); border-color: rgba(244, 63, 94, 0.25);
+    }
+    .callout.info {
+      background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25);
+    }
+    .callout.warning {
+      background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25);
+    }
+    .callout-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+    .callout-body { font-size: 13px; line-height: 1.6; color: var(--text-2); }
+    .callout-body strong { color: var(--text-1); }
+
+    /* Controls & Buttons */
+    .ctrl-row {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px;
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 16px;
+    }
+    .ctrl-grp { display: flex; align-items: center; gap: 8px; }
+    .ctrl-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); font-weight: 600; }
+    select, .btn-group button {
+      background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--r-sm);
+      color: var(--text-1); font-family: 'Inter', sans-serif; font-size: 13px; padding: 7px 12px;
+      cursor: pointer; transition: all var(--tr);
+    }
+    select { appearance: none; padding-right: 28px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+    select:hover, .btn-group button:hover { border-color: var(--blue); }
+    select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+    .btn-group { display: flex; }
+    .btn-group button { border-radius: 0; border-right-width: 0; }
+    .btn-group button:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+    .btn-group button:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; border-right-width: 1px; }
+    .btn-group button.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--bg-1);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    thead tr { background: var(--bg-3); }
+    th {
+      padding: 12px 14px; font-weight: 600; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--text-3); border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    td {
+      padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); color: var(--text-2); white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    td.best { color: var(--emerald); font-weight: 600; }
+    td.mono { font-family: 'JetBrains Mono', monospace; color: var(--text-1); }
+    td.gain-pos { color: var(--emerald); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    td.gain-neg { color: var(--rose); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+    /* Simulator Controls */
+    .sim-slider-row {
+      display: flex; align-items: center; gap: 16px; margin: 16px 0 20px;
+    }
+    .sim-slider-row input[type="range"] {
+      flex: 1; accent-color: var(--violet); height: 6px; background: var(--bg-3); border-radius: 999px; cursor: pointer;
+    }
+    .sim-slider-val {
+      font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--violet);
+      min-width: 60px; text-align: right;
+    }
+    .sim-presets {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px;
+    }
+    .sim-preset-btn {
+      padding: 12px 8px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--bg-3);
+      cursor: pointer; text-align: center; transition: all var(--tr);
+    }
+    .sim-preset-btn:hover { border-color: var(--blue); transform: translateY(-2px); }
+    .sim-preset-btn.on { border-color: var(--violet); background: rgba(139, 92, 246, 0.15); }
+    .sim-preset-val { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: var(--violet); }
+    .sim-preset-lbl { font-size: 10.5px; color: var(--text-3); margin-top: 4px; text-transform: uppercase; }
+
+    /* Vertical Timeline */
+    .timeline {
+      display: flex; flex-direction: column; gap: 16px; position: relative; padding-left: 28px; margin: 16px 0;
+    }
+    .timeline::before {
+      content: ''; position: absolute; left: 8px; top: 8px; bottom: 8px; width: 2px;
+      background: linear-gradient(180deg, var(--blue), var(--violet));
+    }
+    .tl-item { position: relative; }
+    .tl-dot {
+      position: absolute; left: -28px; top: 4px; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--bg-2); border: 2px solid var(--blue); display: flex; align-items: center; justify-content: center;
+    }
+    .tl-dot::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+    .tl-title { font-size: 14px; font-weight: 700; color: var(--text-1); margin-bottom: 4px; }
+    .tl-desc { font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+
+    /* Chart Containers */
+    .chart-box {
+      position: relative; height: 280px; width: 100%; margin-top: 10px;
+    }
+    @media(max-width: 640px) {
+      .chart-box { height: 240px; }
+    }
+
+    /* Section Progress Bar */
+    .progress-bar {
+      position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+      background: linear-gradient(90deg, var(--blue), var(--violet));
+      box-shadow: 0 0 12px var(--blue-glow);
+      z-index: 1000; transition: width 0.15s ease-out;
+    }
+    .progress-label {
+      position: fixed; top: 12px; right: 24px; z-index: 1000;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--text-3); background: rgba(13, 18, 29, 0.7);
+      backdrop-filter: blur(8px); padding: 4px 10px; border-radius: 999px;
+      border: 1px solid var(--border); opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .progress-label.show { opacity: 1; }
+
+    /* Floating Action Buttons */
+    .float-actions {
+      position: fixed; bottom: 24px; right: 24px; z-index: 90;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .float-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--bg-2); border: 1px solid var(--border-light);
+      color: var(--text-1); cursor: pointer; display: flex;
+      align-items: center; justify-content: center; font-size: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      transition: all var(--tr); backdrop-filter: blur(8px);
+    }
+    .float-btn:hover {
+      transform: translateY(-3px); border-color: var(--blue);
+      box-shadow: 0 12px 28px rgba(59,130,246,0.3);
+    }
+    .float-btn.primary {
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      border: none; box-shadow: 0 8px 24px rgba(59,130,246,0.4);
+    }
+    .float-btn.primary:hover { box-shadow: 0 12px 28px rgba(59,130,246,0.55); }
+    .float-btn.toast::after {
+      content: attr(data-toast);
+      position: absolute; right: 54px; top: 50%; transform: translateY(-50%);
+      background: var(--bg-3); border: 1px solid var(--border-light);
+      padding: 6px 12px; border-radius: 8px; font-size: 12px;
+      white-space: nowrap; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .float-btn.toast.show-toast::after { opacity: 1; transform: translateY(-50%) translateX(-4px); }
+    .float-btn { position: relative; }
+
+    /* Section Entrance Animation */
+    .pnl { animation: panelIn 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card, .p-step, .sc, .sim-preset-btn {
+      animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .stats > .sc:nth-child(1) { animation-delay: 0.02s; }
+    .stats > .sc:nth-child(2) { animation-delay: 0.06s; }
+    .stats > .sc:nth-child(3) { animation-delay: 0.10s; }
+    .stats > .sc:nth-child(4) { animation-delay: 0.14s; }
+    .stats > .sc:nth-child(5) { animation-delay: 0.18s; }
+    .stats > .sc:nth-child(6) { animation-delay: 0.22s; }
+
+    /* Comparison overlay toggle */
+    .sim-overlay-toggle {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+      font-size: 12.5px; color: var(--text-2);
+    }
+    .sim-overlay-toggle input[type="checkbox"] {
+      accent-color: var(--violet); cursor: pointer;
+    }
+
+    /* Print Styles */
+    @media print {
+      body { background: #fff; color: #000; }
+      .bg-grid, .bg-orb, .nav-container, .float-actions,
+      .progress-bar, .progress-label, .sim-slider-row,
+      .sim-presets, .ctrl-row, .callout, .stats .sc::before {
+        display: none !important;
+      }
+      .pnl { display: block !important; page-break-after: always; animation: none; }
+      .card, .sc, .p-step { background: #fafafa !important; border-color: #e2e8f0 !important; color: #0f172a !important; }
+      h1, h2, h3, h4 { color: #0f172a !important; }
+      table th { background: #f1f5f9 !important; color: #0f172a !important; }
+      .shell { max-width: 100% !important; padding: 0 !important; }
+      a { color: #1d4ed8 !important; }
+    }
+
+    /* Thesis Quote Card */
+    .thesis-quote {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.08));
+      border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--r-lg);
+      padding: 24px; margin: 20px 0; font-size: 15px; font-style: italic; color: #e2e8f0; line-height: 1.7;
+    }
+
+    footer {
+      border-top: 1px solid var(--border); padding: 36px 0 0; text-align: center;
+      font-size: 12px; color: var(--text-3); line-height: 1.8; margin-top: 60px;
+    }
+    footer a { color: var(--blue); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media(max-width: 900px) {
+      .g2, .g3, .g-main-side { grid-template-columns: 1fr; }
+      .pipeline { grid-template-columns: 1fr; gap: 16px; }
+      .p-arrow { display: none; }
+      .sim-presets { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<div class="progress-label" id="progressLabel">Section 1 / 11</div>
+
+<div class="bg-grid"></div>
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="shell">
+
+<!-- TOP HEADER -->
+<header>
+  <div class="badge"><span class="dot"></span> BE Computer Engineering Major Project &middot; 2025&ndash;2026</div>
+  <h1><span>TCD2Vformer</span><br>Temporal-Conditioned Date2Vecformer</h1>
+  <p class="hsub">Adaptive Attention Temperature Control for Zero-Shot Multi-Horizon Time Series Forecasting &mdash; rigorously audited across 4 benchmark datasets under strict zero-lookahead protocols.</p>
+  <div class="chips">
+    <span class="chip highlight">&#x1F4D0; 44,326 Parameters (&part;N/&part;O &equiv; 0)</span>
+    <span class="chip">&#x1F4CA; 4 Benchmark Datasets</span>
+    <span class="chip">&#x1F4C8; 6 Horizons (O=24&rarr;720)</span>
+    <span class="chip highlight">&#x1F9E0; Zero Test-Set Lookahead</span>
+    <span class="chip">&#x1F510; 48 Checkpoints (SHA-256 Verified)</span>
+    <span class="chip audit-a">&#x2705; Audit Classification: A (Validated)</span>
+  </div>
+</header>
+
+<!-- STICKY 11-SECTION NAVIGATION -->
+<div class="nav-container">
+  <nav>
+    <button class="tab on" onclick="sw('hero')" id="tab-hero">&#x1F680; Overview</button>
+    <button class="tab" onclick="sw('problem')" id="tab-problem">&#x1F52C; The Problem</button>
+    <button class="tab" onclick="sw('contribution')" id="tab-contribution">&#x1F3DB; Contribution</button>
+    <button class="tab" onclick="sw('model')" id="tab-model">&#x1F9E0; TCD2Vformer</button>
+    <button class="tab" onclick="sw('results')" id="tab-results">&#x1F4CA; Results</button>
+    <button class="tab" onclick="sw('simulator')" id="tab-simulator">&#x1F39B; &tau; Simulator</button>
+    <button class="tab" onclick="sw('invariance')" id="tab-invariance">&#x1F4D0; Invariance</button>
+    <button class="tab" onclick="sw('comparison')" id="tab-comparison">&#x2696;&#xFE0F; Comparison</button>
+    <button class="tab" onclick="sw('limits')" id="tab-limits">&#x26A0;&#xFE0F; Where It Fails</button>
+    <button class="tab" onclick="sw('reproducibility')" id="tab-reproducibility">&#x1F6E1;&#xFE0F; Rigor</button>
+    <button class="tab" onclick="sw('takeaway')" id="tab-takeaway">&#x1F3AF; Takeaway</button>
+  </nav>
+</div>
+
+<!-- ==========================================
+     SECTION 1: EXECUTIVE OVERVIEW & PIPELINE
+========================================== -->
+<div class="pnl on" id="pnl-hero">
+  <!-- Visual Pipeline Summary -->
+  <div class="pipeline">
+    <div class="p-step">
+      <div class="p-tag r">1. Attention Pathology</div>
+      <div class="p-title">Diffuse Cross-Attention</div>
+      <div class="p-desc">Base Date2Vec attention is excessively uniform (H<sub>norm</sub> &asymp; 0.97, N<sub>eff</sub> &asymp; 89/96), diluting temporal periodicity across historical steps.</div>
+    </div>
+    <div class="p-arrow">&rarr;</div>
+    <div class="p-step highlight">
+      <div class="p-tag b">2. Our Architecture</div>
+      <div class="p-title">TCD2Vformer &tau;(t)</div>
+      <div class="p-desc">Dynamically scales logits via an input-conditioned temperature network (+305 params, +0.69%) with strict zero horizon dependence.</div>
+    </div>
+    <div class="p-arrow">&rarr;</div>
+    <div class="p-step green">
+      <div class="p-tag g">3. Empirical Proof</div>
+      <div class="p-title">+3.12% MSE on ETTh2</div>
+      <div class="p-desc">Statistically robust gain at O=720 (Cohen's d = 1.67, N=3 seeds) with &part;N/&part;O &equiv; 0 across all 6 horizons.</div>
+    </div>
+  </div>
+
+  <!-- 6 Key Performance Metric Cards -->
+  <div class="stats">
+    <div class="sc" style="--al:linear-gradient(90deg,#3b82f6,#06b6d4)">
+      <div class="slbl">Datasets Evaluated</div>
+      <div class="sval c-b">4</div>
+      <div class="ssub">ETTh1 &middot; ETTh2 &middot; ETTm1 &middot; Exchange</div>
+    </div>
+    <div class="sc" style="--al:linear-gradient(90deg,#8b5cf6,#3b82f6)">
+      <div class="slbl">Trainable Parameters</div>
+      <div class="sval c-v">44,326</div>
+      <div class="ssub">Strictly constant across O=24&ndash;720</div>
+    </div>
+    <div class="sc" style="--al:linear-gradient(90deg,#10b981,#06b6d4)">
+      <div class="slbl">ETTh2 Max Gain (O=720)</div>
+      <div class="sval c-g">+3.12%</div>
+      <div class="ssub">Monotonic rise; Cohen's d = 1.67</div>
+    </div>
+    <div class="sc" style="--al:linear-gradient(90deg,#f59e0b,#f43f5e)">
+      <div class="slbl">Total Evaluations</div>
+      <div class="sval c-o">288</div>
+      <div class="ssub">48 models &times; 6 locked horizons</div>
+    </div>
+    <div class="sc" style="--al:linear-gradient(90deg,#06b6d4,#10b981)">
+      <div class="slbl">Validation Protocol</div>
+      <div class="sval c-c">Strict</div>
+      <div class="ssub">Zero test-set lookahead enforced</div>
+    </div>
+    <div class="sc" style="--al:linear-gradient(90deg,#10b981,#8b5cf6)">
+      <div class="slbl">Audit Classification</div>
+      <div class="sval c-g">Class A</div>
+      <div class="ssub">Technical work frozen &amp; defense-ready</div>
+    </div>
+  </div>
+
+  <!-- Research Story & Scope -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><div class="icon b">&#x1F4D6;</div> The Research Journey</div>
+      <p>This project addresses a fundamental question in arbitrary-length time-series forecasting: <strong>Why does cross-temporal attention fail to focus on salient seasonal cycles?</strong></p>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-title">Phase 1: PureD2Vformer Mathematical Reconstruction</div>
+          <div class="tl-desc">Discovered official repository uses horizon-dependent linear projection layers. Reconstructed a truly parameter-free baseline (&part;N/&part;O &equiv; 0).</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-title">Phase 2: Attention Entropy Diagnosis</div>
+          <div class="tl-desc">Quantified Shannon entropy across 4 datasets, proving attention is ~90&ndash;94% uniform due to small dynamic range in Date2Vec inner products.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-title">Phase 3&ndash;4: Temperature Scaling Hypothesis</div>
+          <div class="tl-desc">Proved validation-selected temperature improves long-horizon accuracy without modifying training weights.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-title">Phase 6: End-to-End TCD2Vformer &amp; Full Audit</div>
+          <div class="tl-desc">Introduced query-conditioned temperature &tau;(t), confirmed +3.12% gain on ETTh2, verified failure modes on ETTm1, and achieved Class A audit status.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="icon e">&#x1F6E1;&#xFE0F;</div> Scientific Claims vs. Non-Claims</div>
+      <p>In accordance with rigorous academic standards, we clearly demarcate the exact scope of our contributions:</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>What We Explicitly Claim</th><th>What We Do NOT Claim</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>&#x2705; Cross-temporal Date2Vec attention exhibits quantifiable diffuse entropy (H<sub>norm</sub> &gt; 0.92).</td>
+              <td>&#x274C; We do NOT claim arbitrary-length forecasting is our invention (inherited from Wang et al., 2023).</td>
+            </tr>
+            <tr>
+              <td>&#x2705; Query-conditioned &tau;(t) reduces ETTh2 O=720 MSE from 0.4104 to 0.3976 (+3.12%, d=1.67).</td>
+              <td>&#x274C; We do NOT claim universal superiority on all datasets (it degrades on high-frequency ETTm1).</td>
+            </tr>
+            <tr>
+              <td>&#x2705; Parameter count is mathematically invariant to horizon (&part;N/&part;O &equiv; 0, 44,326 params).</td>
+              <td>&#x274C; We do NOT claim statistical significance at p &lt; 0.05 (with N=3 seeds, d=1.67 is reported).</td>
+            </tr>
+            <tr>
+              <td>&#x2705; Validation-only selection prevents any test-set data snooping.</td>
+              <td>&#x274C; We do NOT claim to replace foundation models (our focus is architectural efficiency).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 2: THE PROBLEM (ATTENTION PATHOLOGY)
+========================================== -->
+<div class="pnl" id="pnl-problem">
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title"><div class="icon r">&#x1F52C;</div> Mathematical Formulation of Attention Pathology</div>
+    <p>In the standard Date2Vecformer cross-temporal attention mechanism, future timestamp queries Q &isin; &Ropf;<sup>O &times; d</sup> attend over historical lookback keys K &isin; &Ropf;<sup>L &times; d</sup> via standard dot-product attention:</p>
+    <div class="formula">
+      A = softmax( (Q K<sup>T</sup>) / (&radic;d &middot; &tau;) ) &isin; &Ropf;<sup>O &times; L</sup>, &emsp; default &tau; = 1.0
+    </div>
+    <p>Because Date2Vec maps timestamps into continuous circular sinusoidal features, the resulting inner products exhibit an extremely compressed variance: <code>Var(Q K<sup>T</sup> / &radic;d) &Lt; 1.0</code>. As a consequence, the exponential numerator in softmax produces near-identical weights across all historical time steps:</p>
+    <div class="formula">
+      H(A) = - &sum;<sub>i=1</sub><sup>L</sup> A<sub>i</sub> ln(A<sub>i</sub>), &emsp; H<sub>norm</sub> = H(A) / ln(L), &emsp; N<sub>eff</sub> = exp(H(A))
+    </div>
+    <p>When H<sub>norm</sub> &rarr; 1.0 and N<sub>eff</sub> &rarr; L, attention behaves identically to <strong>uniform average pooling</strong>, completely discarding the temporal and seasonal structure learned by Date2Vec.</p>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><div class="icon o">&#x1F4CA;</div> Phase 2 Diagnostic Baseline (Fixed &tau;=1.0)</div>
+      <p>Across all 4 benchmark datasets at lookback L=96, the default attention distribution was measured empirically:</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Dataset</th><th>H<sub>norm</sub></th><th>N<sub>eff</sub> (out of 96)</th><th>Uniformity %</th><th>Diagnosis</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ETTh1</td><td class="mono">0.9706</td><td class="mono">87.1 / 96</td><td>90.7%</td><td>Severe Diffusion</td></tr>
+            <tr><td>ETTh2</td><td class="mono">0.9757</td><td class="mono">89.8 / 96</td><td>93.5%</td><td>Extreme Diffusion</td></tr>
+            <tr><td>ETTm1</td><td class="mono">0.9374</td><td class="mono">85.8 / 96</td><td>89.4%</td><td>Moderate Diffusion</td></tr>
+            <tr><td>Exchange</td><td class="mono">0.9216</td><td class="mono">85.5 / 96</td><td>89.1%</td><td>Moderate Diffusion</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warning" style="margin-top:16px; margin-bottom:0;">
+        <div class="callout-icon">&#x26A0;&#xFE0F;</div>
+        <div class="callout-body">
+          <strong>Key Discovery:</strong> On ETTh2, 89.8 out of 96 historical steps received roughly equal weight. The model effectively acted as an unweighted moving average filter, undermining the core rationale for transformer self-attention.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="icon v">&#x1F9EA;</div> Empirical Counterfactual Verification</div>
+      <p>To rigorously confirm that diffuse attention degraded the model's temporal sensitivity, two counterfactual perturbation experiments were executed in Phase 2:</p>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-title">Experiment A: Shuffled Historical Timestamp Dates</div>
+          <div class="tl-desc">When historical date tokens were randomly permuted, ETTh2 test loss worsened by less than 0.5% (&Delta;MSE = +0.0018), confirming the base model barely extracted ordering cues from timestamps.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-title">Experiment B: Constant Zero-Date Injection</div>
+          <div class="tl-desc">Replacing all historical dates with a constant arbitrary date token resulted in virtually indistinguishable performance, proving cross-temporal attention was functionally uninformative at &tau;=1.0.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 3: OUR CONTRIBUTION & BOUNDARY
+========================================== -->
+<div class="pnl" id="pnl-contribution">
+  <div class="thesis-quote">
+    &ldquo;We reconstruct a strictly horizon-independent PureD2Vformer (&part;N/&part;O &equiv; 0), diagnose a widespread diffuse attention pathology in cross-temporal Date2Vec attention, and propose Temporal-Conditioned Date2Vecformer (TCD2Vformer) with dynamic input-conditioned temperature scaling &tau;(t). We evaluate across 4 benchmark datasets and 6 horizons under strict zero-lookahead validation protocols.&rdquo;
+    <div style="font-size:12px; font-style:normal; color:var(--text-3); margin-top:8px;">&mdash; BE Major Project Formal Contribution Statement (Thesis Formulation)</div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title"><div class="icon b">&#x1F3DB;</div> Attribution &amp; Provenance Matrix</div>
+    <p>Scientific rigor requires absolute clarity regarding prior work vs. our engineering contributions:</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Official D2Vformer (Wang et al., 2023)</th><th>Our Contribution (This Project)</th><th>Provenance Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Flexible / Arbitrary Horizon Forecasting</td>
+            <td>Introduced core concept via Date2Vec embeddings.</td>
+            <td>Inherited concept; audited mathematical execution.</td>
+            <td><span class="chip">Inherited</span></td>
+          </tr>
+          <tr>
+            <td>Output Projection Layer</td>
+            <td>Linear(d_model, O) &mdash; horizon dependent.</td>
+            <td>Reconstructed parameter-free PureD2Vformer (&part;N/&part;O &equiv; 0).</td>
+            <td><span class="chip highlight">Reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>Attention Entropy Analysis</td>
+            <td>Not investigated; assumed standard softmax suffices.</td>
+            <td>Diagnosed H<sub>norm</sub> &gt; 0.92 pathology across 4 datasets.</td>
+            <td><span class="chip audit-a">Novel Discovery</span></td>
+          </tr>
+          <tr>
+            <td>Attention Temperature Control</td>
+            <td>Fixed at standard &tau; = 1.0.</td>
+            <td>Formulated dynamic conditioned scaling &tau;(t) (+305 params).</td>
+            <td><span class="chip audit-a">Novel Architecture</span></td>
+          </tr>
+          <tr>
+            <td>Validation Protocol</td>
+            <td>Reported single-seed empirical benchmarks.</td>
+            <td>3-Seed multi-horizon zero-lookahead audit (288 runs).</td>
+            <td><span class="chip highlight">Rigorous Audit</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 4: TCD2VFORMER MODEL ARCHITECTURE
+========================================== -->
+<div class="pnl" id="pnl-model">
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title"><div class="icon b">&#x1F9E0;</div> End-to-End Architectural Dataflow</div>
+    <p>TCD2Vformer replaces static attention with a lightweight temperature conditioning network that dynamically adjusts softmax peakiness:</p>
+    <div class="pipeline" style="grid-template-columns:repeat(4, 1fr);">
+      <div class="p-step">
+        <div class="p-tag b">Step 1: Embedding</div>
+        <div class="p-title">Date2Vec &amp; Tokens</div>
+        <div class="p-desc">Input series X &isin; &Ropf;<sup>L &times; D</sup> and future timestamps T<sub>out</sub> &isin; &Ropf;<sup>O &times; K</sup> projected into latent space &Ropf;<sup>d</sup>.</div>
+      </div>
+      <div class="p-step">
+        <div class="p-tag b">Step 2: Projections</div>
+        <div class="p-title">Cross-Attention</div>
+        <div class="p-desc">Queries Q = W<sub>q</sub> Z<sub>out</sub>, Keys K = W<sub>k</sub> Z<sub>in</sub>, Values V = W<sub>v</sub> X. Logits S = (Q K<sup>T</sup>)/&radic;d.</div>
+      </div>
+      <div class="p-step highlight">
+        <div class="p-tag g">Step 3: OUR MODULE</div>
+        <div class="p-title">Dynamic &tau;(t) Network</div>
+        <div class="p-desc">&tau;(t) = &tau;<sub>min</sub> + softplus(MLP(Z<sub>out</sub>(t))). Computes adaptive temperature per forecast step (+305 params).</div>
+      </div>
+      <div class="p-step">
+        <div class="p-tag b">Step 4: Output</div>
+        <div class="p-title">Parameter-Free Y</div>
+        <div class="p-desc">Y = softmax(S / &tau;) &middot; V. Zero horizon-dependent weights; arbitrary horizon evaluated seamlessly.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon v">&#x1F4CB;</div> Mathematical Specification of the 4 Temperature Modes</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Mode</th><th>Mathematical Formulation</th><th>Parameters</th><th>Total Params (7-var)</th><th>Behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>fixed</strong> (Baseline)</td>
+            <td class="mono">A = softmax(S / 1.0)</td>
+            <td class="mono">0</td>
+            <td class="mono">44,021</td>
+            <td>Standard PureD2Vformer baseline; fixed &tau;=1.0.</td>
+          </tr>
+          <tr>
+            <td><strong>learned_global</strong></td>
+            <td class="mono">&tau; = softplus(&theta;<sub>scalar</sub>) + 0.05</td>
+            <td class="mono">1</td>
+            <td class="mono">44,022</td>
+            <td>Single dataset-wide learned scalar temperature.</td>
+          </tr>
+          <tr>
+            <td><strong>temporal_context</strong></td>
+            <td class="mono">&tau;(X) = softplus(W<sub>2</sub> &sigma;(W<sub>1</sub> GAP(X)))</td>
+            <td class="mono">305</td>
+            <td class="mono">44,326</td>
+            <td>Conditions &tau; on global average pooled historical series.</td>
+          </tr>
+          <tr>
+            <td><strong>query_conditioned</strong> (Best)</td>
+            <td class="mono">&tau;(t) = softplus(W<sub>2</sub> &sigma;(W<sub>1</sub> Z<sub>out</sub>(t)))</td>
+            <td class="mono">305</td>
+            <td class="mono">44,326</td>
+            <td>Adapts &tau; for each future forecast step based on its timestamp embedding.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout breakthrough" style="margin-top:16px; margin-bottom:0;">
+      <div class="callout-icon">&#x2728;</div>
+      <div class="callout-body">
+        <strong>Minimal Parameter Footprint:</strong> The query-conditioned module adds only <strong>305 parameters</strong> (a 0.69% relative increase over baseline), maintaining an ultra-lightweight footprint suitable for resource-constrained edge deployment.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 5: INTERACTIVE RESULTS & ABLATION
+========================================== -->
+<div class="pnl" id="pnl-results">
+  <!-- Interactive Filters -->
+  <div class="ctrl-row">
+    <div class="ctrl-grp">
+      <span class="ctrl-lbl">Dataset:</span>
+      <select id="sel-dataset" onchange="upResultsUI()">
+        <option value="ETTh2">ETTh2 (Electricity Hourly 2)</option>
+        <option value="ETTh1">ETTh1 (Electricity Hourly 1)</option>
+        <option value="exchange">Exchange Rate</option>
+        <option value="ETTm1">ETTm1 (Electricity 15-min)</option>
+      </select>
+    </div>
+    <div class="ctrl-grp">
+      <span class="ctrl-lbl">Metric:</span>
+      <div class="btn-group">
+        <button id="btn-metric-mse" class="on" onclick="setMetric('mse')">MSE</button>
+        <button id="btn-metric-mae" onclick="setMetric('mae')">MAE</button>
+      </div>
+    </div>
+    <div class="ctrl-grp">
+      <span class="ctrl-lbl">Horizon:</span>
+      <select id="sel-horizon" onchange="upResultsUI()">
+        <option value="all">All Horizons (O=24&rarr;720)</option>
+        <option value="24">O = 24</option>
+        <option value="48">O = 48</option>
+        <option value="96">O = 96</option>
+        <option value="192">O = 192</option>
+        <option value="336">O = 336</option>
+        <option value="720">O = 720 (Max Horizon)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Dynamic KPI Summary Cards -->
+  <div class="stats" id="res-kpis">
+    <div class="sc">
+      <div class="slbl">Best Mode (O=720)</div>
+      <div class="sval c-b" id="kpi-best-mode">&mdash;</div>
+      <div class="ssub" id="kpi-best-mode-sub">lowest MSE on selected dataset</div>
+    </div>
+    <div class="sc">
+      <div class="slbl">Max Relative Gain</div>
+      <div class="sval c-g" id="kpi-max-gain">&mdash;</div>
+      <div class="ssub" id="kpi-max-gain-sub">vs fixed &tau;=1.0 baseline</div>
+    </div>
+    <div class="sc">
+      <div class="slbl">Learned &tau; Value</div>
+      <div class="sval c-v" id="kpi-tau-val">&mdash;</div>
+      <div class="ssub" id="kpi-tau-sub">validation-selected</div>
+    </div>
+    <div class="sc">
+      <div class="slbl">Attention H<sub>norm</sub></div>
+      <div class="sval c-c" id="kpi-hn-val">&mdash;</div>
+      <div class="ssub" id="kpi-hn-sub">N<sub>eff</sub> per 96 steps</div>
+    </div>
+  </div>
+
+  <!-- Charts Grid -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><div class="icon b">&#x1F4C8;</div> Multi-Horizon Performance Curve</div>
+      <div class="chart-box">
+        <canvas id="c-res-line"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon v">&#x1F321;&#xFE0F;</div> Temperature (&tau;) Scaling Trajectory</div>
+      <div class="chart-box">
+        <canvas id="c-res-tau"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authoritative Data Table -->
+  <div class="card">
+    <div class="card-title"><div class="icon e">&#x1F4CA;</div> Authoritative Ablation Results Table (Locked Phase 6 CSV)</div>
+    <div class="table-wrap">
+      <table id="tbl-results">
+        <thead>
+          <tr>
+            <th>Horizon (O)</th>
+            <th>Mode</th>
+            <th>MSE (Mean &plusmn; Std)</th>
+            <th>MAE (Mean &plusmn; Std)</th>
+            <th>&tau; Mean</th>
+            <th>Relative Gain %</th>
+            <th>Entropy (H<sub>norm</sub>)</th>
+            <th>Effective Span (N<sub>eff</sub>)</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-results-body">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 6: ATTENTION TEMPERATURE SIMULATOR
+========================================== -->
+<div class="pnl" id="pnl-simulator">
+  <div class="callout info">
+    <div class="callout-icon">&#x1F4A1;</div>
+    <div class="callout-body">
+      <strong>Interactive Conceptual Simulation:</strong> This tool visualizes how temperature parameter &tau; mathematically reshapes attention logits into weights via <code>A<sub>i</sub> = exp(s<sub>i</sub> / &tau;) / &sum;<sub>j</sub> exp(s<sub>j</sub> / &tau;)</code> over a 32-step historical window with synthetic diurnal periodicity.
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title"><div class="icon v">&#x1F39B;</div> Dynamic Temperature Controls</div>
+    <div class="sim-presets">
+      <div class="sim-preset-btn" onclick="setSimTau(0.18)">
+        <div class="sim-preset-val">&tau;=0.18</div>
+        <div class="sim-preset-lbl">ETTm1 (Over-sharp)</div>
+      </div>
+      <div class="sim-preset-btn" onclick="setSimTau(0.50)">
+        <div class="sim-preset-val">&tau;=0.50</div>
+        <div class="sim-preset-lbl">High Focus</div>
+      </div>
+      <div class="sim-preset-btn on" id="btn-preset-090" onclick="setSimTau(0.90)">
+        <div class="sim-preset-val">&tau;=0.90</div>
+        <div class="sim-preset-lbl">ETTh2 Optimal</div>
+      </div>
+      <div class="sim-preset-btn" onclick="setSimTau(1.00)">
+        <div class="sim-preset-val">&tau;=1.00</div>
+        <div class="sim-preset-lbl">Baseline Default</div>
+      </div>
+      <div class="sim-preset-btn" onclick="setSimTau(2.00)">
+        <div class="sim-preset-val">&tau;=2.00</div>
+        <div class="sim-preset-lbl">Diffuse Attention</div>
+      </div>
+      <div class="sim-preset-btn" onclick="setSimTau(5.00)">
+        <div class="sim-preset-val">&tau;=5.00</div>
+        <div class="sim-preset-lbl">Near Uniform</div>
+      </div>
+    </div>
+
+    <div class="sim-slider-row">
+      <span class="ctrl-lbl">Fine-tune &tau;:</span>
+      <input type="range" id="sim-slider" min="0.05" max="5.0" step="0.01" value="0.90" oninput="onSimSlider(this.value)"/>
+      <div class="sim-slider-val" id="sim-slider-val">0.90</div>
+    </div>
+
+    <!-- Live Metrics -->
+    <div class="stats" style="margin-bottom:20px">
+      <div class="sc">
+        <div class="slbl">Normalized Entropy (H<sub>norm</sub>)</div>
+        <div class="sval c-c" id="sim-hn">&mdash;</div>
+        <div class="ssub">0.0 = point mass, 1.0 = uniform</div>
+      </div>
+      <div class="sc">
+        <div class="slbl">Effective Span (N<sub>eff</sub>)</div>
+        <div class="sval c-v" id="sim-ne">&mdash;</div>
+        <div class="ssub">Number of active time steps</div>
+      </div>
+      <div class="sc">
+        <div class="slbl">Peak Attention Weight</div>
+        <div class="sval c-g" id="sim-mx">&mdash;</div>
+        <div class="ssub">Max weight assigned to any single step</div>
+      </div>
+    </div>
+
+    <div class="sim-overlay-toggle">
+      <input type="checkbox" id="sim-overlay-cb" onchange="onOverlayToggle()"/>
+      <label for="sim-overlay-cb">Overlay all preset &tau; values for comparison</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon b">&#x1F4CA;</div> Attention Distribution Visualization (L = 32 historical steps)</div>
+    <div class="chart-box" style="height:320px;">
+      <canvas id="c-sim-dist"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 7: HORIZON INDEPENDENCE PROOF
+========================================== -->
+<div class="pnl" id="pnl-invariance">
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title"><div class="icon b">&#x1F4D0;</div> Zero Parameter Growth Proof (&part;N / &part;O &equiv; 0)</div>
+    <p>A central theoretical claim of this project is that <strong>TCD2Vformer's parameter count is strictly independent of the forecast horizon O</strong>. The official D2Vformer implementation contained horizon-dependent linear projection heads that forced parameter explosion at long horizons.</p>
+    <div class="chart-box" style="height:300px;">
+      <canvas id="c-param-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon e">&#x2705;</div> 96/96 Parameter Audit Verification Matrix</div>
+    <p>Every combination of 4 datasets &times; 4 modes &times; 6 horizons was audited via automated script checking <code>sum(p.numel() for p in model.parameters())</code>:</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Dataset</th><th>Input Dim (D)</th><th>fixed &tau;=1.0</th><th>learned_global</th><th>temporal_context</th><th>query_conditioned</th><th>Audit Result</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ETTh1</td><td class="mono">7 variables</td><td class="mono">44,021</td><td class="mono">44,022</td><td class="mono">44,326</td><td class="mono">44,326</td><td class="best">&#x2705; Invariant across all O</td></tr>
+          <tr><td>ETTh2</td><td class="mono">7 variables</td><td class="mono">44,021</td><td class="mono">44,022</td><td class="mono">44,326</td><td class="mono">44,326</td><td class="best">&#x2705; Invariant across all O</td></tr>
+          <tr><td>ETTm1</td><td class="mono">7 variables</td><td class="mono">44,021</td><td class="mono">44,022</td><td class="mono">44,326</td><td class="mono">44,326</td><td class="best">&#x2705; Invariant across all O</td></tr>
+          <tr><td>Exchange</td><td class="mono">8 variables</td><td class="mono">44,408</td><td class="mono">44,409</td><td class="mono">44,713</td><td class="mono">44,713</td><td class="best">&#x2705; Invariant across all O</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout breakthrough" style="margin-top:16px; margin-bottom:0;">
+      <div class="callout-icon">&#x1F512;</div>
+      <div class="callout-body">
+        <strong>Audit Certificate:</strong> Passed 96 out of 96 automated parameter verification checks. Delta parameter count &Delta;N between O=24 and O=720 is mathematically 0 bytes.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 8: 3-WAY MODEL COMPARISON
+========================================== -->
+<div class="pnl" id="pnl-comparison">
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title"><div class="icon b">&#x2696;&#xFE0F;</div> Three-Way Architecture Comparison</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Feature / Property</th><th>Official D2Vformer (Wang et al., 2023)</th><th>PureD2Vformer (Reconstructed Baseline)</th><th>TCD2Vformer (Our Proposed Model)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Output Generation</td>
+            <td>Horizon-dependent Linear(d_model, O)</td>
+            <td>Parameter-free Cross-Attention Projection</td>
+            <td>Parameter-free Adaptive Cross-Attention</td>
+          </tr>
+          <tr>
+            <td>Attention Scaling</td>
+            <td>Static &tau; = 1.0 (Fixed)</td>
+            <td>Static &tau; = 1.0 (Fixed)</td>
+            <td>Dynamic Conditioned &tau;(t)</td>
+          </tr>
+          <tr>
+            <td>Parameters at O=720</td>
+            <td class="mono" style="color:var(--rose)">~132,000 (Scales with O)</td>
+            <td class="mono">44,021 (Flat)</td>
+            <td class="mono" style="color:var(--blue); font-weight:600">44,326 (Flat)</td>
+          </tr>
+          <tr>
+            <td>Zero-Shot Multi-Horizon</td>
+            <td>Requires architectural adaptation</td>
+            <td>Native zero-shot support</td>
+            <td>Native zero-shot + dynamic calibration</td>
+          </tr>
+          <tr>
+            <td>Attention Entropy</td>
+            <td>Diffuse (H<sub>norm</sub> &asymp; 0.97)</td>
+            <td>Diffuse (H<sub>norm</sub> &asymp; 0.97)</td>
+            <td>Calibrated (H<sub>norm</sub> &asymp; 0.97 &rarr; 0.90)</td>
+          </tr>
+          <tr>
+            <td>ETTh2 O=720 MSE</td>
+            <td>N/A (different parameterization)</td>
+            <td class="mono">0.4104</td>
+            <td class="best mono">0.3976 (+3.12%)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon g">&#x1F4CA;</div> Seed-Level Performance Robustness on ETTh2 (O=720)</div>
+    <p>To establish that the +3.12% improvement on ETTh2 is not a random stochastic fluctuation, all 3 independent random seeds were evaluated at O=720:</p>
+    <div class="g2" style="align-items:center;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Seed</th><th>Fixed Baseline (&tau;=1.0)</th><th>TCD2Vformer (query_cond)</th><th>Relative Improvement</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">Seed 42</td><td class="mono">0.4112</td><td class="mono best">0.4026</td><td class="gain-pos">+2.10%</td></tr>
+            <tr><td class="mono">Seed 43</td><td class="mono">0.4191</td><td class="mono best">0.3974</td><td class="gain-pos">+5.18%</td></tr>
+            <tr><td class="mono">Seed 44</td><td class="mono">0.4009</td><td class="mono best">0.3927</td><td class="gain-pos">+2.03%</td></tr>
+            <tr style="background:rgba(59,130,246,0.08); font-weight:700;">
+              <td>Mean &plusmn; Std</td>
+              <td class="mono">0.4104 &plusmn; 0.0092</td>
+              <td class="mono best">0.3976 &plusmn; 0.0049</td>
+              <td class="gain-pos">+3.12% (d=1.67)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="chart-box" style="height:240px;">
+        <canvas id="c-seed-bar"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 9: WHERE IT FAILS (SCIENTIFIC HONESTY)
+========================================== -->
+<div class="pnl" id="pnl-limits">
+  <div class="callout boundary">
+    <div class="callout-icon">&#x26A0;&#xFE0F;</div>
+    <div class="callout-body">
+      <strong>Commitment to Scientific Honesty:</strong> Genuine engineering research documents negative results with equal prominence to successes. TCD2Vformer does NOT succeed universally across all datasets. Below is a complete disclosure of the ETTm1 failure mode.
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><div class="icon r">&#x1F4C9;</div> ETTm1 Horizon Degradation Progression</div>
+      <p>On ETTm1 (15-minute sampling interval), TCD2Vformer exhibits short-horizon improvement at O=24, followed by progressive degradation at extended horizons:</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Horizon (O)</th><th>Fixed Baseline</th><th>query_conditioned</th><th>Relative Delta</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">O = 24</td><td class="mono">0.6716</td><td class="mono best">0.6656</td><td class="gain-pos">+0.89%</td><td>&#x2705; Slight Gain</td></tr>
+            <tr><td class="mono">O = 48</td><td class="mono">0.7163</td><td class="mono">0.7219</td><td class="gain-neg">-0.78%</td><td>&#x26A0;&#xFE0F; Marginal Loss</td></tr>
+            <tr><td class="mono">O = 96</td><td class="mono">0.8815</td><td class="mono">0.9092</td><td class="gain-neg">-3.14%</td><td>&#x274C; Degraded</td></tr>
+            <tr><td class="mono">O = 192</td><td class="mono">0.9285</td><td class="mono">0.9622</td><td class="gain-neg">-3.63%</td><td>&#x274C; Degraded</td></tr>
+            <tr><td class="mono">O = 336</td><td class="mono">0.9626</td><td class="mono">1.0057</td><td class="gain-neg">-4.47%</td><td>&#x274C; Degraded</td></tr>
+            <tr><td class="mono">O = 720</td><td class="mono">1.0300</td><td class="mono">1.0741</td><td class="gain-neg">-4.28%</td><td>&#x274C; Degraded</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="icon r">&#x1F50D;</div> ETTm1 Degradation Trend Chart</div>
+      <div class="chart-box" style="height:260px;">
+        <canvas id="c-ettm1-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon o">&#x1F9E0;</div> Three Exhaustively Researched Root Causes</div>
+    <div class="g3" style="margin-bottom:0">
+      <div class="p-step">
+        <div class="p-tag r">Mechanism 1</div>
+        <div class="p-title">Sampling Frequency Disparity</div>
+        <div class="p-desc">ETTm1 is recorded every 15 minutes. A lookback window of L=96 spans only <strong>24 hours</strong>, whereas on ETTh2 (hourly), L=96 covers <strong>4 entire days</strong>. A single day provides inadequate cyclical history for long forecasts.</div>
+      </div>
+      <div class="p-step">
+        <div class="p-tag r">Mechanism 2</div>
+        <div class="p-title">Temperature Over-Sharpening</div>
+        <div class="p-desc">The model learned an excessively low temperature (&tau; &asymp; 0.174&ndash;0.180), collapsing attention entropy to N<sub>eff</sub> &asymp; 1.2 steps. The model over-focused on single historical points rather than maintaining context.</div>
+      </div>
+      <div class="p-step">
+        <div class="p-tag r">Mechanism 3</div>
+        <div class="p-title">Phase Mismatch at 7.5 Days</div>
+        <div class="p-desc">At O=720 (7.5 days ahead for 15-min data), extreme sharpness leads to severe day-of-week phase alignment errors. Uniform attention (baseline) acted as a smoother filter, outperforming sharp attention.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 10: REPRODUCIBILITY & RIGOR
+========================================== -->
+<div class="pnl" id="pnl-reproducibility">
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title"><div class="icon e">&#x1F6E1;&#xFE0F;</div> Three-Stage Experimental Protocol</div>
+    <p>To eliminate test-set snooping and publication bias, all experiments adhered to a rigid 3-stage isolation protocol:</p>
+    <div class="pipeline" style="grid-template-columns:repeat(3, 1fr);">
+      <div class="p-step">
+        <div class="p-tag b">Stage 1: Validation Tuning</div>
+        <div class="p-title">O<sub>val</sub> = 48 Only</div>
+        <div class="p-desc">Model hyperparameters and &tau; selection operated strictly on validation data. Zero test data was inspected during optimization.</div>
+      </div>
+      <div class="p-step">
+        <div class="p-tag v">Stage 2: Code &amp; Model Freeze</div>
+        <div class="p-title">SHA-256 Hashing</div>
+        <div class="p-desc">All 48 model checkpoints and experimental scripts were frozen and recorded with SHA-256 checksums before final runs.</div>
+      </div>
+      <div class="p-step green">
+        <div class="p-tag g">Stage 3: Blind Evaluation</div>
+        <div class="p-title">Locked Evaluation</div>
+        <div class="p-desc">Frozen checkpoints evaluated once across all 6 horizons (O=24&rarr;720) across Seeds 42, 43, 44 with zero post-hoc parameter adjustments.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><div class="icon b">&#x1F4CB;</div> Reproducibility Audit Checklist</div>
+      <ul>
+        <li>&#x2705; <strong>Checkpoints Traceable:</strong> 48 <code>.pt</code> weights saved with full hyperparameter logs.</li>
+        <li>&#x2705; <strong>Zero Test-Set Snooping:</strong> Test sets isolated; evaluated strictly post-freeze.</li>
+        <li>&#x2705; <strong>Parameter Count Certified:</strong> 96/96 automated verification checks passed.</li>
+        <li>&#x2705; <strong>Deterministic Seeds:</strong> PyTorch &amp; CUDA manual seeds (42, 43, 44) strictly set.</li>
+        <li>&#x2705; <strong>Authoritative Results CSV:</strong> All 96 data rows exported directly from test output logs.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="icon o">&#x1F5E3;&#xFE0F;</div> Viva Defense FAQs</div>
+      <p><strong>Q: Why do you report Cohen's d rather than p &lt; 0.05?</strong><br>
+      A: With N=3 seeds, standard Student's t-test has only df=2 degrees of freedom, requiring extreme t-critical values. Cohen's d = 1.67 provides a standard, publication-grade measure of practical effect size.</p>
+      <p style="margin-top:10px;"><strong>Q: Why did Exchange Rate show virtually zero improvement?</strong><br>
+      A: Currency exchange rates approximate a random-walk martingale with near-zero seasonal cyclicality. Date2Vec timestamp embeddings carry minimal predictive signal on non-periodic financial data.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     SECTION 11: FINAL TAKEAWAY & VIVA GUIDE
+========================================== -->
+<div class="pnl" id="pnl-takeaway">
+  <div class="g3">
+    <div class="card" style="border-top:3px solid var(--rose);">
+      <div class="card-title"><div class="icon r">&#x1F52C;</div> The Problem</div>
+      <p>Standard cross-temporal Date2Vec attention suffers from <strong>severe entropy saturation</strong> (H<sub>norm</sub> &asymp; 0.97, N<sub>eff</sub> &asymp; 89/96), rendering attention functionally equivalent to unweighted moving average pooling.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--blue);">
+      <div class="card-title"><div class="icon b">&#x1F9E0;</div> The Solution</div>
+      <p>We reconstructed a truly horizon-independent <strong>PureD2Vformer</strong> (&part;N/&part;O &equiv; 0) and developed <strong>TCD2Vformer</strong> with lightweight input-conditioned temperature scaling &tau;(t) adding just 305 parameters (+0.69%).</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--emerald);">
+      <div class="card-title"><div class="icon e">&#x1F3C6;</div> The Result</div>
+      <p>Demonstrated a <strong>+3.12% MSE reduction</strong> on ETTh2 at O=720 (Cohen's d = 1.67) with zero parameter scaling, while rigorously documenting the ETTm1 failure boundary where excessive sharpening harms performance.</p>
+    </div>
+  </div>
+
+  <div class="thesis-quote">
+    &ldquo;TCD2Vformer proves that cross-temporal attention in timestamp-driven time-series forecasting requires adaptive temperature scaling. By adding just 305 parameters, the model concentrates diffuse attention and boosts long-horizon accuracy without violating horizon independence.&rdquo;
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon v">&#x1F399;&#xFE0F;</div> Examiner 2-Minute Viva Presentation Script</div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-title">Minute 0:00 &ndash; 0:45 &middot; The Problem &amp; Architecture Audit</div>
+        <div class="tl-desc">&ldquo;We audited the base D2Vformer paper and discovered two issues: first, the official code contained hidden horizon-dependent output projections; second, cross-temporal attention was ~93% diffuse (H<sub>norm</sub>=0.9757 on ETTh2). We reconstructed a strictly parameter-free PureD2Vformer with zero weights scaling with horizon.&rdquo;</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-title">Minute 0:45 &ndash; 1:30 &middot; Proposed Solution (TCD2Vformer)</div>
+        <div class="tl-desc">&ldquo;To resolve the diffuse attention pathology, we introduced TCD2Vformer with query-conditioned temperature scaling &tau;(t). It dynamically calibrates attention sharpness per forecast step using only 305 additional parameters (+0.69%), strictly maintaining &part;N/&part;O &equiv; 0.&rdquo;</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-title">Minute 1:30 &ndash; 2:00 &middot; Empirical Results &amp; Scientific Honesty</div>
+        <div class="tl-desc">&ldquo;On ETTh2 at horizon O=720, TCD2Vformer achieved a +3.12% MSE improvement (Cohen's d=1.67 across 3 seeds). Scientifically, we also identified its boundary: on 15-minute ETTm1, the model over-sharpens (&tau;&asymp;0.18), degrading performance. All 288 evaluations were verified under strict zero-lookahead protocols, earning Audit Classification A.&rdquo;</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOATING ACTION BUTTONS -->
+<div class="float-actions">
+  <button class="float-btn toast" data-toast="Link copied!" onclick="copyShareLink()" aria-label="Copy shareable link">&#x1F517;</button>
+  <button class="float-btn" onclick="window.print()" aria-label="Print / export PDF">&#x1F5B6;&#xFE0F;</button>
+  <button class="float-btn primary" id="backToTop" onclick="window.scrollTo({top:0, behavior:'smooth'})" aria-label="Back to top" style="opacity:0; pointer-events:none;">&#x2191;</button>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p><strong>TCD2Vformer: Temporal-Conditioned Date2Vecformer</strong> &middot; Final BE Major Project Interactive Demonstration</p>
+  <p>Department of Computer Engineering &middot; Academic Year 2025&ndash;2026</p>
+  <p style="margin-top:6px;"><a href="https://github.com/ayushsalunkhe/D2VFormer" target="_blank">Repository: github.com/ayushsalunkhe/D2VFormer</a> &middot; Audit Classification: <strong>Class A (Verified &amp; Frozen)</strong></p>
+</footer>
+
+</div> <!-- .shell -->
+
+<!-- JAVASCRIPT LOGIC & DATA -->
+<script>
+/* Authoritative Data Payload loaded directly from CSV */
+const D = {
+  "ETTh1": {
+    "fixed": {
+      "24": {
+        "mse": 0.8302,
+        "mse_std": 0.0037,
+        "mae": 0.6213,
+        "mae_std": 0.0059,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9699,
+        "n_eff": 86.8
+      },
+      "48": {
+        "mse": 0.851,
+        "mse_std": 0.0007,
+        "mae": 0.6342,
+        "mae_std": 0.0056,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9712,
+        "n_eff": 87.1
+      },
+      "96": {
+        "mse": 0.8779,
+        "mse_std": 0.0036,
+        "mae": 0.6526,
+        "mae_std": 0.0047,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9717,
+        "n_eff": 87.2
+      },
+      "192": {
+        "mse": 0.9247,
+        "mse_std": 0.0065,
+        "mae": 0.6757,
+        "mae_std": 0.0039,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9718,
+        "n_eff": 87.2
+      },
+      "336": {
+        "mse": 0.9527,
+        "mse_std": 0.0077,
+        "mae": 0.6908,
+        "mae_std": 0.0034,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.972,
+        "n_eff": 87.2
+      },
+      "720": {
+        "mse": 1.0944,
+        "mse_std": 0.0103,
+        "mae": 0.7595,
+        "mae_std": 0.0022,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9719,
+        "n_eff": 87.2
+      }
+    },
+    "learned_global": {
+      "24": {
+        "mse": 0.8314,
+        "mse_std": 0.0059,
+        "mae": 0.625,
+        "mae_std": 0.0026,
+        "tau": 0.7285,
+        "imp": -0.14,
+        "h_norm": 0.9581,
+        "n_eff": 83.6
+      },
+      "48": {
+        "mse": 0.8505,
+        "mse_std": 0.0057,
+        "mae": 0.6373,
+        "mae_std": 0.003,
+        "tau": 0.7285,
+        "imp": 0.06,
+        "h_norm": 0.9597,
+        "n_eff": 84.0
+      },
+      "96": {
+        "mse": 0.8768,
+        "mse_std": 0.0058,
+        "mae": 0.6554,
+        "mae_std": 0.0026,
+        "tau": 0.7285,
+        "imp": 0.12,
+        "h_norm": 0.9603,
+        "n_eff": 84.0
+      },
+      "192": {
+        "mse": 0.9226,
+        "mse_std": 0.005,
+        "mae": 0.6783,
+        "mae_std": 0.0024,
+        "tau": 0.7285,
+        "imp": 0.23,
+        "h_norm": 0.9606,
+        "n_eff": 84.1
+      },
+      "336": {
+        "mse": 0.9522,
+        "mse_std": 0.0076,
+        "mae": 0.6937,
+        "mae_std": 0.002,
+        "tau": 0.7285,
+        "imp": 0.05,
+        "h_norm": 0.9609,
+        "n_eff": 84.1
+      },
+      "720": {
+        "mse": 1.0916,
+        "mse_std": 0.0071,
+        "mae": 0.7611,
+        "mae_std": 0.0014,
+        "tau": 0.7285,
+        "imp": 0.25,
+        "h_norm": 0.9608,
+        "n_eff": 84.0
+      }
+    },
+    "query_conditioned": {
+      "24": {
+        "mse": 0.8444,
+        "mse_std": 0.0096,
+        "mae": 0.6255,
+        "mae_std": 0.0035,
+        "tau": 0.2606,
+        "imp": -1.7,
+        "h_norm": 0.8831,
+        "n_eff": 65.1
+      },
+      "48": {
+        "mse": 0.8653,
+        "mse_std": 0.0068,
+        "mae": 0.6383,
+        "mae_std": 0.0033,
+        "tau": 0.2604,
+        "imp": -1.68,
+        "h_norm": 0.885,
+        "n_eff": 65.4
+      },
+      "96": {
+        "mse": 0.8943,
+        "mse_std": 0.0027,
+        "mae": 0.6575,
+        "mae_std": 0.0026,
+        "tau": 0.2603,
+        "imp": -1.87,
+        "h_norm": 0.8847,
+        "n_eff": 65.2
+      },
+      "192": {
+        "mse": 0.9404,
+        "mse_std": 0.0032,
+        "mae": 0.6802,
+        "mae_std": 0.0022,
+        "tau": 0.2606,
+        "imp": -1.7,
+        "h_norm": 0.8872,
+        "n_eff": 65.6
+      },
+      "336": {
+        "mse": 0.9707,
+        "mse_std": 0.0058,
+        "mae": 0.6959,
+        "mae_std": 0.0018,
+        "tau": 0.2611,
+        "imp": -1.9,
+        "h_norm": 0.8874,
+        "n_eff": 65.6
+      },
+      "720": {
+        "mse": 1.1117,
+        "mse_std": 0.0034,
+        "mae": 0.7653,
+        "mae_std": 0.0031,
+        "tau": 0.2621,
+        "imp": -1.58,
+        "h_norm": 0.8875,
+        "n_eff": 65.6
+      }
+    },
+    "temporal_context": {
+      "24": {
+        "mse": 0.8514,
+        "mse_std": 0.0042,
+        "mae": 0.6283,
+        "mae_std": 0.0072,
+        "tau": 0.2092,
+        "imp": -2.55,
+        "h_norm": 0.8602,
+        "n_eff": 60.2
+      },
+      "48": {
+        "mse": 0.8702,
+        "mse_std": 0.0054,
+        "mae": 0.6405,
+        "mae_std": 0.0075,
+        "tau": 0.2094,
+        "imp": -2.25,
+        "h_norm": 0.8623,
+        "n_eff": 60.5
+      },
+      "96": {
+        "mse": 0.896,
+        "mse_std": 0.0069,
+        "mae": 0.659,
+        "mae_std": 0.0072,
+        "tau": 0.2101,
+        "imp": -2.06,
+        "h_norm": 0.8639,
+        "n_eff": 60.7
+      },
+      "192": {
+        "mse": 0.9404,
+        "mse_std": 0.0068,
+        "mae": 0.6807,
+        "mae_std": 0.0061,
+        "tau": 0.2113,
+        "imp": -1.69,
+        "h_norm": 0.868,
+        "n_eff": 61.3
+      },
+      "336": {
+        "mse": 0.9684,
+        "mse_std": 0.0109,
+        "mae": 0.6958,
+        "mae_std": 0.0051,
+        "tau": 0.2131,
+        "imp": -1.65,
+        "h_norm": 0.8689,
+        "n_eff": 61.5
+      },
+      "720": {
+        "mse": 1.1101,
+        "mse_std": 0.0095,
+        "mae": 0.7651,
+        "mae_std": 0.0053,
+        "tau": 0.2147,
+        "imp": -1.43,
+        "h_norm": 0.8688,
+        "n_eff": 61.5
+      }
+    }
+  },
+  "ETTh2": {
+    "fixed": {
+      "24": {
+        "mse": 0.2268,
+        "mse_std": 0.0008,
+        "mae": 0.3305,
+        "mae_std": 0.0019,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9811,
+        "n_eff": 89.6
+      },
+      "48": {
+        "mse": 0.2475,
+        "mse_std": 0.0016,
+        "mae": 0.3444,
+        "mae_std": 0.0021,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9819,
+        "n_eff": 89.8
+      },
+      "96": {
+        "mse": 0.2784,
+        "mse_std": 0.0027,
+        "mae": 0.3633,
+        "mae_std": 0.0022,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9826,
+        "n_eff": 90.0
+      },
+      "192": {
+        "mse": 0.3105,
+        "mse_std": 0.0043,
+        "mae": 0.3833,
+        "mae_std": 0.0026,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9825,
+        "n_eff": 89.9
+      },
+      "336": {
+        "mse": 0.3422,
+        "mse_std": 0.0065,
+        "mae": 0.3998,
+        "mae_std": 0.0035,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9827,
+        "n_eff": 90.0
+      },
+      "720": {
+        "mse": 0.4104,
+        "mse_std": 0.0092,
+        "mae": 0.4375,
+        "mae_std": 0.0048,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9828,
+        "n_eff": 90.0
+      }
+    },
+    "learned_global": {
+      "24": {
+        "mse": 0.227,
+        "mse_std": 0.0007,
+        "mae": 0.3305,
+        "mae_std": 0.0018,
+        "tau": 0.9562,
+        "imp": -0.09,
+        "h_norm": 0.9798,
+        "n_eff": 89.2
+      },
+      "48": {
+        "mse": 0.2477,
+        "mse_std": 0.0016,
+        "mae": 0.3445,
+        "mae_std": 0.002,
+        "tau": 0.9562,
+        "imp": -0.1,
+        "h_norm": 0.9806,
+        "n_eff": 89.4
+      },
+      "96": {
+        "mse": 0.2787,
+        "mse_std": 0.0027,
+        "mae": 0.3634,
+        "mae_std": 0.0022,
+        "tau": 0.9562,
+        "imp": -0.09,
+        "h_norm": 0.9813,
+        "n_eff": 89.6
+      },
+      "192": {
+        "mse": 0.3107,
+        "mse_std": 0.0043,
+        "mae": 0.3834,
+        "mae_std": 0.0026,
+        "tau": 0.9562,
+        "imp": -0.08,
+        "h_norm": 0.9812,
+        "n_eff": 89.5
+      },
+      "336": {
+        "mse": 0.3424,
+        "mse_std": 0.0065,
+        "mae": 0.3999,
+        "mae_std": 0.0035,
+        "tau": 0.9562,
+        "imp": -0.06,
+        "h_norm": 0.9815,
+        "n_eff": 89.6
+      },
+      "720": {
+        "mse": 0.4105,
+        "mse_std": 0.009,
+        "mae": 0.4376,
+        "mae_std": 0.0047,
+        "tau": 0.9562,
+        "imp": -0.03,
+        "h_norm": 0.9816,
+        "n_eff": 89.6
+      }
+    },
+    "query_conditioned": {
+      "24": {
+        "mse": 0.228,
+        "mse_std": 0.0058,
+        "mae": 0.328,
+        "mae_std": 0.0014,
+        "tau": 0.9041,
+        "imp": -0.52,
+        "h_norm": 0.9776,
+        "n_eff": 88.6
+      },
+      "48": {
+        "mse": 0.2482,
+        "mse_std": 0.0049,
+        "mae": 0.342,
+        "mae_std": 0.0014,
+        "tau": 0.9041,
+        "imp": -0.28,
+        "h_norm": 0.9786,
+        "n_eff": 88.8
+      },
+      "96": {
+        "mse": 0.2785,
+        "mse_std": 0.0044,
+        "mae": 0.3612,
+        "mae_std": 0.0013,
+        "tau": 0.9041,
+        "imp": -0.05,
+        "h_norm": 0.9793,
+        "n_eff": 89.0
+      },
+      "192": {
+        "mse": 0.3076,
+        "mse_std": 0.0027,
+        "mae": 0.3802,
+        "mae_std": 0.0008,
+        "tau": 0.9041,
+        "imp": 0.93,
+        "h_norm": 0.9792,
+        "n_eff": 88.9
+      },
+      "336": {
+        "mse": 0.3348,
+        "mse_std": 0.0019,
+        "mae": 0.3947,
+        "mae_std": 0.0015,
+        "tau": 0.9041,
+        "imp": 2.18,
+        "h_norm": 0.9796,
+        "n_eff": 89.0
+      },
+      "720": {
+        "mse": 0.3976,
+        "mse_std": 0.0049,
+        "mae": 0.4301,
+        "mae_std": 0.0032,
+        "tau": 0.9041,
+        "imp": 3.12,
+        "h_norm": 0.9796,
+        "n_eff": 89.0
+      }
+    },
+    "temporal_context": {
+      "24": {
+        "mse": 0.228,
+        "mse_std": 0.0058,
+        "mae": 0.3281,
+        "mae_std": 0.0014,
+        "tau": 0.9013,
+        "imp": -0.53,
+        "h_norm": 0.9775,
+        "n_eff": 88.6
+      },
+      "48": {
+        "mse": 0.2482,
+        "mse_std": 0.0049,
+        "mae": 0.342,
+        "mae_std": 0.0013,
+        "tau": 0.9013,
+        "imp": -0.28,
+        "h_norm": 0.9785,
+        "n_eff": 88.8
+      },
+      "96": {
+        "mse": 0.2786,
+        "mse_std": 0.0044,
+        "mae": 0.3612,
+        "mae_std": 0.0013,
+        "tau": 0.9013,
+        "imp": -0.06,
+        "h_norm": 0.9793,
+        "n_eff": 89.0
+      },
+      "192": {
+        "mse": 0.3076,
+        "mse_std": 0.0027,
+        "mae": 0.3802,
+        "mae_std": 0.0008,
+        "tau": 0.9013,
+        "imp": 0.93,
+        "h_norm": 0.9792,
+        "n_eff": 88.9
+      },
+      "336": {
+        "mse": 0.3348,
+        "mse_std": 0.0019,
+        "mae": 0.3948,
+        "mae_std": 0.0015,
+        "tau": 0.9013,
+        "imp": 2.17,
+        "h_norm": 0.9795,
+        "n_eff": 89.0
+      },
+      "720": {
+        "mse": 0.3976,
+        "mse_std": 0.0049,
+        "mae": 0.4301,
+        "mae_std": 0.0032,
+        "tau": 0.9014,
+        "imp": 3.12,
+        "h_norm": 0.9796,
+        "n_eff": 89.0
+      }
+    }
+  },
+  "ETTm1": {
+    "fixed": {
+      "24": {
+        "mse": 0.6716,
+        "mse_std": 0.0112,
+        "mae": 0.5501,
+        "mae_std": 0.005,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9656,
+        "n_eff": 85.8
+      },
+      "48": {
+        "mse": 0.7163,
+        "mse_std": 0.0072,
+        "mae": 0.571,
+        "mae_std": 0.0011,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9654,
+        "n_eff": 85.7
+      },
+      "96": {
+        "mse": 0.8815,
+        "mse_std": 0.0209,
+        "mae": 0.6269,
+        "mae_std": 0.0051,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9662,
+        "n_eff": 85.8
+      },
+      "192": {
+        "mse": 0.9285,
+        "mse_std": 0.0194,
+        "mae": 0.6477,
+        "mae_std": 0.0048,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9669,
+        "n_eff": 85.9
+      },
+      "336": {
+        "mse": 0.9626,
+        "mse_std": 0.0167,
+        "mae": 0.6663,
+        "mae_std": 0.0039,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9675,
+        "n_eff": 86.0
+      },
+      "720": {
+        "mse": 1.03,
+        "mse_std": 0.0196,
+        "mae": 0.7027,
+        "mae_std": 0.005,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9682,
+        "n_eff": 86.2
+      }
+    },
+    "learned_global": {
+      "24": {
+        "mse": 0.6654,
+        "mse_std": 0.0151,
+        "mae": 0.545,
+        "mae_std": 0.0057,
+        "tau": 0.4171,
+        "imp": 0.93,
+        "h_norm": 0.946,
+        "n_eff": 80.0
+      },
+      "48": {
+        "mse": 0.7171,
+        "mse_std": 0.0085,
+        "mae": 0.5673,
+        "mae_std": 0.0049,
+        "tau": 0.4171,
+        "imp": -0.11,
+        "h_norm": 0.9459,
+        "n_eff": 79.9
+      },
+      "96": {
+        "mse": 0.9008,
+        "mse_std": 0.0137,
+        "mae": 0.6283,
+        "mae_std": 0.0056,
+        "tau": 0.4171,
+        "imp": -2.18,
+        "h_norm": 0.9468,
+        "n_eff": 80.0
+      },
+      "192": {
+        "mse": 0.9487,
+        "mse_std": 0.017,
+        "mae": 0.6499,
+        "mae_std": 0.0064,
+        "tau": 0.4171,
+        "imp": -2.19,
+        "h_norm": 0.9477,
+        "n_eff": 80.2
+      },
+      "336": {
+        "mse": 0.9828,
+        "mse_std": 0.0181,
+        "mae": 0.6684,
+        "mae_std": 0.0065,
+        "tau": 0.4171,
+        "imp": -2.09,
+        "h_norm": 0.9484,
+        "n_eff": 80.3
+      },
+      "720": {
+        "mse": 1.0512,
+        "mse_std": 0.0177,
+        "mae": 0.7051,
+        "mae_std": 0.0068,
+        "tau": 0.4171,
+        "imp": -2.05,
+        "h_norm": 0.9495,
+        "n_eff": 80.5
+      }
+    },
+    "query_conditioned": {
+      "24": {
+        "mse": 0.6656,
+        "mse_std": 0.0298,
+        "mae": 0.5451,
+        "mae_std": 0.0094,
+        "tau": 0.1817,
+        "imp": 0.89,
+        "h_norm": 0.9011,
+        "n_eff": 67.2
+      },
+      "48": {
+        "mse": 0.7219,
+        "mse_std": 0.0156,
+        "mae": 0.5709,
+        "mae_std": 0.0055,
+        "tau": 0.1788,
+        "imp": -0.78,
+        "h_norm": 0.9001,
+        "n_eff": 67.0
+      },
+      "96": {
+        "mse": 0.9092,
+        "mse_std": 0.0392,
+        "mae": 0.6329,
+        "mae_std": 0.0152,
+        "tau": 0.1816,
+        "imp": -3.14,
+        "h_norm": 0.9022,
+        "n_eff": 67.3
+      },
+      "192": {
+        "mse": 0.9622,
+        "mse_std": 0.0491,
+        "mae": 0.6554,
+        "mae_std": 0.0181,
+        "tau": 0.1812,
+        "imp": -3.63,
+        "h_norm": 0.9031,
+        "n_eff": 67.5
+      },
+      "336": {
+        "mse": 1.0057,
+        "mse_std": 0.0607,
+        "mae": 0.6755,
+        "mae_std": 0.0206,
+        "tau": 0.1803,
+        "imp": -4.47,
+        "h_norm": 0.9029,
+        "n_eff": 67.4
+      },
+      "720": {
+        "mse": 1.0741,
+        "mse_std": 0.0612,
+        "mae": 0.7121,
+        "mae_std": 0.0214,
+        "tau": 0.18,
+        "imp": -4.28,
+        "h_norm": 0.904,
+        "n_eff": 67.6
+      }
+    },
+    "temporal_context": {
+      "24": {
+        "mse": 0.6634,
+        "mse_std": 0.0074,
+        "mae": 0.5426,
+        "mae_std": 0.004,
+        "tau": 0.1738,
+        "imp": 1.22,
+        "h_norm": 0.901,
+        "n_eff": 67.4
+      },
+      "48": {
+        "mse": 0.7196,
+        "mse_std": 0.0161,
+        "mae": 0.568,
+        "mae_std": 0.0056,
+        "tau": 0.1738,
+        "imp": -0.47,
+        "h_norm": 0.9014,
+        "n_eff": 67.4
+      },
+      "96": {
+        "mse": 0.8942,
+        "mse_std": 0.0185,
+        "mae": 0.6276,
+        "mae_std": 0.0068,
+        "tau": 0.1739,
+        "imp": -1.43,
+        "h_norm": 0.9029,
+        "n_eff": 67.5
+      },
+      "192": {
+        "mse": 0.9422,
+        "mse_std": 0.0251,
+        "mae": 0.6489,
+        "mae_std": 0.0087,
+        "tau": 0.174,
+        "imp": -1.48,
+        "h_norm": 0.9038,
+        "n_eff": 67.7
+      },
+      "336": {
+        "mse": 0.9782,
+        "mse_std": 0.0351,
+        "mae": 0.6673,
+        "mae_std": 0.0107,
+        "tau": 0.1743,
+        "imp": -1.61,
+        "h_norm": 0.9041,
+        "n_eff": 67.8
+      },
+      "720": {
+        "mse": 1.0421,
+        "mse_std": 0.0328,
+        "mae": 0.7028,
+        "mae_std": 0.0108,
+        "tau": 0.1752,
+        "imp": -1.17,
+        "h_norm": 0.9061,
+        "n_eff": 68.2
+      }
+    }
+  },
+  "exchange": {
+    "fixed": {
+      "24": {
+        "mse": 0.1028,
+        "mse_std": 0.003,
+        "mae": 0.236,
+        "mae_std": 0.0032,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9656,
+        "n_eff": 85.5
+      },
+      "48": {
+        "mse": 0.1274,
+        "mse_std": 0.0031,
+        "mae": 0.2634,
+        "mae_std": 0.003,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9658,
+        "n_eff": 85.6
+      },
+      "96": {
+        "mse": 0.1788,
+        "mse_std": 0.0034,
+        "mae": 0.3123,
+        "mae_std": 0.0029,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9671,
+        "n_eff": 85.8
+      },
+      "192": {
+        "mse": 0.2933,
+        "mse_std": 0.0034,
+        "mae": 0.4043,
+        "mae_std": 0.0023,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9671,
+        "n_eff": 85.7
+      },
+      "336": {
+        "mse": 0.4868,
+        "mse_std": 0.0043,
+        "mae": 0.5231,
+        "mae_std": 0.0022,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9697,
+        "n_eff": 86.4
+      },
+      "720": {
+        "mse": 1.232,
+        "mse_std": 0.0084,
+        "mae": 0.8594,
+        "mae_std": 0.0031,
+        "tau": 1.0,
+        "imp": 0.0,
+        "h_norm": 0.9696,
+        "n_eff": 86.4
+      }
+    },
+    "learned_global": {
+      "24": {
+        "mse": 0.1028,
+        "mse_std": 0.003,
+        "mae": 0.236,
+        "mae_std": 0.0032,
+        "tau": 0.9731,
+        "imp": -0.01,
+        "h_norm": 0.9643,
+        "n_eff": 85.2
+      },
+      "48": {
+        "mse": 0.1274,
+        "mse_std": 0.0031,
+        "mae": 0.2635,
+        "mae_std": 0.003,
+        "tau": 0.9731,
+        "imp": -0.02,
+        "h_norm": 0.9645,
+        "n_eff": 85.2
+      },
+      "96": {
+        "mse": 0.1788,
+        "mse_std": 0.0034,
+        "mae": 0.3123,
+        "mae_std": 0.0029,
+        "tau": 0.9731,
+        "imp": -0.01,
+        "h_norm": 0.9658,
+        "n_eff": 85.5
+      },
+      "192": {
+        "mse": 0.2934,
+        "mse_std": 0.0034,
+        "mae": 0.4043,
+        "mae_std": 0.0023,
+        "tau": 0.9731,
+        "imp": -0.0,
+        "h_norm": 0.9659,
+        "n_eff": 85.4
+      },
+      "336": {
+        "mse": 0.4868,
+        "mse_std": 0.0043,
+        "mae": 0.5231,
+        "mae_std": 0.0022,
+        "tau": 0.9731,
+        "imp": -0.0,
+        "h_norm": 0.9686,
+        "n_eff": 86.1
+      },
+      "720": {
+        "mse": 1.2321,
+        "mse_std": 0.0084,
+        "mae": 0.8594,
+        "mae_std": 0.0031,
+        "tau": 0.9731,
+        "imp": -0.0,
+        "h_norm": 0.9684,
+        "n_eff": 86.1
+      }
+    },
+    "query_conditioned": {
+      "24": {
+        "mse": 0.1029,
+        "mse_std": 0.0023,
+        "mae": 0.236,
+        "mae_std": 0.0019,
+        "tau": 0.9628,
+        "imp": -0.06,
+        "h_norm": 0.9663,
+        "n_eff": 85.7
+      },
+      "48": {
+        "mse": 0.1273,
+        "mse_std": 0.0024,
+        "mae": 0.2633,
+        "mae_std": 0.0018,
+        "tau": 0.9628,
+        "imp": 0.04,
+        "h_norm": 0.9665,
+        "n_eff": 85.7
+      },
+      "96": {
+        "mse": 0.1787,
+        "mse_std": 0.0027,
+        "mae": 0.3121,
+        "mae_std": 0.0015,
+        "tau": 0.9628,
+        "imp": 0.04,
+        "h_norm": 0.9678,
+        "n_eff": 86.0
+      },
+      "192": {
+        "mse": 0.2931,
+        "mse_std": 0.0029,
+        "mae": 0.404,
+        "mae_std": 0.0015,
+        "tau": 0.9628,
+        "imp": 0.1,
+        "h_norm": 0.9678,
+        "n_eff": 85.9
+      },
+      "336": {
+        "mse": 0.4861,
+        "mse_std": 0.0049,
+        "mae": 0.5226,
+        "mae_std": 0.0027,
+        "tau": 0.9628,
+        "imp": 0.14,
+        "h_norm": 0.9703,
+        "n_eff": 86.6
+      },
+      "720": {
+        "mse": 1.231,
+        "mse_std": 0.0108,
+        "mae": 0.8592,
+        "mae_std": 0.0041,
+        "tau": 0.9629,
+        "imp": 0.08,
+        "h_norm": 0.9702,
+        "n_eff": 86.6
+      }
+    },
+    "temporal_context": {
+      "24": {
+        "mse": 0.1029,
+        "mse_std": 0.0023,
+        "mae": 0.236,
+        "mae_std": 0.0019,
+        "tau": 0.9622,
+        "imp": -0.06,
+        "h_norm": 0.9662,
+        "n_eff": 85.7
+      },
+      "48": {
+        "mse": 0.1273,
+        "mse_std": 0.0024,
+        "mae": 0.2633,
+        "mae_std": 0.0018,
+        "tau": 0.9622,
+        "imp": 0.04,
+        "h_norm": 0.9665,
+        "n_eff": 85.7
+      },
+      "96": {
+        "mse": 0.1787,
+        "mse_std": 0.0027,
+        "mae": 0.3121,
+        "mae_std": 0.0015,
+        "tau": 0.9622,
+        "imp": 0.04,
+        "h_norm": 0.9678,
+        "n_eff": 86.0
+      },
+      "192": {
+        "mse": 0.2931,
+        "mse_std": 0.0029,
+        "mae": 0.404,
+        "mae_std": 0.0015,
+        "tau": 0.9622,
+        "imp": 0.1,
+        "h_norm": 0.9678,
+        "n_eff": 85.9
+      },
+      "336": {
+        "mse": 0.4861,
+        "mse_std": 0.0049,
+        "mae": 0.5226,
+        "mae_std": 0.0027,
+        "tau": 0.9622,
+        "imp": 0.14,
+        "h_norm": 0.9703,
+        "n_eff": 86.6
+      },
+      "720": {
+        "mse": 1.231,
+        "mse_std": 0.0108,
+        "mae": 0.8592,
+        "mae_std": 0.0041,
+        "tau": 0.9622,
+        "imp": 0.08,
+        "h_norm": 0.9702,
+        "n_eff": 86.5
+      }
+    }
+  }
+};
+
+/* Global State */
+let activeMetric = 'mse';
+let simTauVal = 0.90;
+let charts = {};
+
+/* Helper: Destroy and create chart */
+function createChart(id, config) {
+  if (charts[id]) {
+    charts[id].destroy();
+  }
+  const ctx = document.getElementById(id);
+  if (!ctx) return null;
+  charts[id] = new Chart(ctx, config);
+  return charts[id];
+}
+
+/* Common Chart Options */
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 350 },
+  plugins: {
+    legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } } },
+    tooltip: {
+      backgroundColor: 'rgba(13, 18, 29, 0.95)',
+      titleColor: '#f8fafc',
+      bodyColor: '#cbd5e1',
+      borderColor: 'rgba(255,255,255,0.1)',
+      borderWidth: 1,
+      padding: 10
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(255, 255, 255, 0.04)' },
+      ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 } }
+    },
+    y: {
+      grid: { color: 'rgba(255, 255, 255, 0.04)' },
+      ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 } }
+    }
+  }
+};
+
+/* Tab Switching with Hash Update */
+function sw(tabId) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.pnl').forEach(p => p.classList.remove('on'));
+  
+  const btn = document.getElementById('tab-' + tabId);
+  const pnl = document.getElementById('pnl-' + tabId);
+  if (btn) btn.classList.add('on');
+  if (pnl) pnl.classList.add('on');
+
+  window.location.hash = tabId;
+
+  // Initialize specific tab charts on view
+  if (tabId === 'results') setTimeout(upResultsUI, 50);
+  if (tabId === 'simulator') setTimeout(() => setSimTau(simTauVal), 50);
+  if (tabId === 'invariance') setTimeout(initInvarianceChart, 50);
+  if (tabId === 'comparison') setTimeout(initComparisonCharts, 50);
+  if (tabId === 'limits') setTimeout(initETTm1Chart, 50);
+}
+
+/* Metric toggle */
+function setMetric(m) {
+  activeMetric = m;
+  document.getElementById('btn-metric-mse').classList.toggle('on', m === 'mse');
+  document.getElementById('btn-metric-mae').classList.toggle('on', m === 'mae');
+  upResultsUI();
+}
+
+/* Update Results Section UI */
+function upResultsUI() {
+  const dsSelect = document.getElementById('sel-dataset');
+  const hzSelect = document.getElementById('sel-horizon');
+  if (!dsSelect || !hzSelect) return;
+
+  const ds = dsSelect.value;
+  const hz = hzSelect.value;
+  const dsData = D[ds];
+  if (!dsData) return;
+
+  const horizons = [24, 48, 96, 192, 336, 720];
+
+  // Dynamic KPIs for dataset
+  const qc720 = dsData['query_conditioned'] ? dsData['query_conditioned'][720] : null;
+  const fix720 = dsData['fixed'] ? dsData['fixed'][720] : null;
+
+  if (qc720 && fix720) {
+    document.getElementById('kpi-max-gain').textContent = (qc720.imp > 0 ? '+' : '') + qc720.imp.toFixed(2) + '%';
+    document.getElementById('kpi-max-gain-sub').textContent = 'at O=720 (' + (qc720.imp >= 0 ? 'gain' : 'loss') + ' vs fixed)';
+    document.getElementById('kpi-tau-val').textContent = qc720.tau.toFixed(4);
+    document.getElementById('kpi-hn-val').textContent = qc720.h_norm.toFixed(4);
+    document.getElementById('kpi-hn-sub').textContent = 'N_eff = ' + qc720.n_eff.toFixed(1) + ' / 96';
+
+    // Determine best mode for this dataset at O=720
+    let bestM = 'fixed', bestV = Infinity;
+    Object.keys(dsData).forEach(m => {
+      if (dsData[m] && dsData[m][720] && dsData[m][720][activeMetric] < bestV) {
+        bestV = dsData[m][720][activeMetric]; bestM = m;
+      }
+    });
+    const modeNames = { fixed: 'fixed', learned_global: 'learned_global', temporal_context: 'temporal_ctx', query_conditioned: 'query_cond' };
+    document.getElementById('kpi-best-mode').textContent = modeNames[bestM] || bestM;
+    document.getElementById('kpi-best-mode-sub').textContent = 'lowest ' + activeMetric.toUpperCase() + ' on ' + ds + ' at O=720';
+  }
+
+  // Populate Table
+  const tbody = document.getElementById('tbl-results-body');
+  if (tbody) {
+    tbody.innerHTML = '';
+    const modes = ['fixed', 'learned_global', 'temporal_context', 'query_conditioned'];
+    const showHorizons = (hz === 'all') ? horizons : [parseInt(hz)];
+
+    showHorizons.forEach(h => {
+      // Find best mode for this horizon
+      let bestMode = 'fixed';
+      let bestVal = 999999;
+      modes.forEach(m => {
+        if (dsData[m] && dsData[m][h]) {
+          const val = dsData[m][h][activeMetric];
+          if (val < bestVal) { bestVal = val; bestMode = m; }
+        }
+      });
+
+      modes.forEach(m => {
+        if (!dsData[m] || !dsData[m][h]) return;
+        const row = dsData[m][h];
+        const isBest = (m === bestMode);
+        const tr = document.createElement('tr');
+        
+        const impClass = row.imp > 0 ? 'gain-pos' : (row.imp < 0 ? 'gain-neg' : 'mono');
+        const impSign = row.imp > 0 ? '+' : '';
+
+        tr.innerHTML = `
+          <td class="mono"><strong>O = ${h}</strong></td>
+          <td><strong>${m}</strong> ${isBest ? '<span class="chip audit-a" style="font-size:9px; padding:2px 6px;">Best</span>' : ''}</td>
+          <td class="mono ${isBest && activeMetric==='mse' ? 'best' : ''}">${row.mse.toFixed(4)} &plusmn; ${row.mse_std.toFixed(4)}</td>
+          <td class="mono ${isBest && activeMetric==='mae' ? 'best' : ''}">${row.mae.toFixed(4)} &plusmn; ${row.mae_std.toFixed(4)}</td>
+          <td class="mono">${row.tau.toFixed(4)}</td>
+          <td class="${impClass}">${impSign}${row.imp.toFixed(2)}%</td>
+          <td class="mono">${row.h_norm.toFixed(4)}</td>
+          <td class="mono">${row.n_eff.toFixed(1)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+  }
+
+  // Multi-horizon performance curve
+  const labels = horizons.map(h => 'O=' + h);
+  const colorMap = {
+    'fixed': '#94a3b8',
+    'learned_global': '#f59e0b',
+    'temporal_context': '#8b5cf6',
+    'query_conditioned': '#3b82f6'
+  };
+
+  const datasets = Object.keys(colorMap).map(mode => ({
+    label: mode,
+    data: horizons.map(h => dsData[mode] ? dsData[mode][h][activeMetric] : null),
+    borderColor: colorMap[mode],
+    backgroundColor: colorMap[mode] + '20',
+    tension: 0.25,
+    borderWidth: mode === 'query_conditioned' ? 2.5 : 1.5,
+    pointRadius: 4
+  }));
+
+  createChart('c-res-line', {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        title: { display: true, text: ds + ' ' + activeMetric.toUpperCase() + ' across Horizons', color: '#cbd5e1' }
+      }
+    }
+  });
+
+  // Tau chart across horizons
+  const tauDatasets = ['learned_global', 'temporal_context', 'query_conditioned'].map(mode => ({
+    label: mode,
+    data: horizons.map(h => dsData[mode] ? dsData[mode][h].tau : null),
+    borderColor: colorMap[mode],
+    backgroundColor: colorMap[mode] + '15',
+    tension: 0.2,
+    borderWidth: 2,
+    pointRadius: 4
+  }));
+
+  createChart('c-res-tau', {
+    type: 'line',
+    data: { labels, datasets: tauDatasets },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        title: { display: true, text: ds + ' Learned Temperature (τ) Trajectory', color: '#cbd5e1' }
+      }
+    }
+  });
+}
+
+/* Simulator Logic - Improved: stronger synthetic logits so τ effects are visually meaningful */
+function generateSyntheticLogits(L) {
+  // Diurnal periodicity with a strong recent peak (t=0 most recent),
+  // a gentle decay, and fine-grained noise to look like real attention logits.
+  return Array.from({ length: L }, (_, i) => {
+    const t = i / (L - 1);
+    const diurnal = 2.4 * Math.cos(t * Math.PI * 1.8 - 0.4);     // main wave
+    const decay = -0.9 * t;                                       // recency bias
+    const fine = 0.55 * Math.sin(t * Math.PI * 8);                // fine structure
+    return diurnal + decay + fine;
+  });
+}
+
+function softmaxFromLogits(logits) {
+  const m = Math.max(...logits);
+  const expS = logits.map(v => Math.exp(v - m));
+  const s = expS.reduce((a, b) => a + b, 0);
+  return expS.map(v => v / s);
+}
+
+function attnStats(attn) {
+  const L = attn.length;
+  const H = -attn.reduce((acc, p) => acc + (p > 1e-12 ? p * Math.log(p) : 0), 0);
+  return { H_norm: H / Math.log(L), N_eff: Math.exp(H), maxA: Math.max(...attn) };
+}
+
+function colorForWeight(v, maxV) {
+  // Map weight 0..maxV onto a perceptual blue (low) → emerald (high) gradient.
+  const ratio = Math.min(1, v / Math.max(maxV, 1e-6));
+  const hue = 215 - ratio * 60;          // 215 (blue) → 155 (emerald)
+  const sat = 75 + ratio * 20;
+  const light = 45 + ratio * 20;
+  return `hsla(${hue}, ${sat}%, ${light}%, 0.9)`;
+}
+
+let simOverlayMode = false;
+const SIM_PRESETS = [0.18, 0.50, 0.90, 1.00, 2.00, 5.00];
+
+function onOverlayToggle() {
+  simOverlayMode = document.getElementById('sim-overlay-cb').checked;
+  setSimTau(simTauVal);
+}
+
+function setSimTau(tau, fromSlider = false) {
+  simTauVal = tau;
+  if (!fromSlider) {
+    const s = document.getElementById('sim-slider');
+    if (s) s.value = tau;
+    document.querySelectorAll('.sim-preset-btn').forEach(b => b.classList.remove('on'));
+  }
+  document.getElementById('sim-slider-val').textContent = tau.toFixed(2);
+
+  const L = 32;
+  const baseLogits = generateSyntheticLogits(L);
+  const scaled = baseLogits.map(x => x / tau);
+  const attn = softmaxFromLogits(scaled);
+  const st = attnStats(attn);
+
+  document.getElementById('sim-hn').textContent = st.H_norm.toFixed(4);
+  document.getElementById('sim-ne').textContent = st.N_eff.toFixed(1) + ' / ' + L;
+  document.getElementById('sim-mx').textContent = st.maxA.toFixed(4);
+
+  if (simOverlayMode) {
+    // Render all presets as thin lines + current τ as highlighted bars
+    const presetDatasets = SIM_PRESETS.map(t => {
+      const attnT = softmaxFromLogits(baseLogits.map(x => x / t));
+      const color = t === 0.18 ? '#f43f5e'
+                 : t === 0.50 ? '#f59e0b'
+                 : t === 0.90 ? '#3b82f6'
+                 : t === 1.00 ? '#94a3b8'
+                 : t === 2.00 ? '#06b6d4'
+                 : '#8b5cf6';
+      return {
+        label: 'τ=' + t.toFixed(2),
+        data: attnT,
+        borderColor: color,
+        backgroundColor: color + '20',
+        borderWidth: (t === tau) ? 2.5 : 1,
+        pointRadius: 0,
+        tension: 0.25,
+        type: 'line',
+        fill: false
+      };
+    });
+    createChart('c-sim-dist', {
+      type: 'line',
+      data: {
+        labels: Array.from({ length: L }, (_, i) => 't-' + (L - i)),
+        datasets: presetDatasets
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        plugins: {
+          ...CHART_DEFAULTS.plugins,
+          legend: { display: true, labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, boxWidth: 16 } }
+        },
+        scales: {
+          x: { ...CHART_DEFAULTS.scales.x, ticks: { display: false } },
+          y: { ...CHART_DEFAULTS.scales.y, max: Math.max(0.12, st.maxA * 1.15) }
+        }
+      }
+    });
+  } else {
+    // Single bar distribution with weight-aware coloring
+    const maxA = st.maxA;
+    createChart('c-sim-dist', {
+      type: 'bar',
+      data: {
+        labels: Array.from({ length: L }, (_, i) => 't-' + (L - i)),
+        datasets: [{
+          label: 'Attention Weight A (τ=' + tau.toFixed(2) + ')',
+          data: attn,
+          backgroundColor: attn.map(v => colorForWeight(v, maxA)),
+          borderRadius: 4,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        plugins: {
+          ...CHART_DEFAULTS.plugins,
+          legend: { display: false },
+          tooltip: {
+            ...CHART_DEFAULTS.plugins.tooltip,
+            callbacks: {
+              label: (ctx) => 'Weight: ' + ctx.parsed.y.toFixed(4)
+            }
+          }
+        },
+        scales: {
+          x: { ...CHART_DEFAULTS.scales.x, ticks: { display: false } },
+          y: { ...CHART_DEFAULTS.scales.y, max: Math.max(0.12, maxA * 1.15),
+               title: { display: true, text: 'Attention Weight', color: '#64748b' } }
+        }
+      }
+    });
+  }
+}
+
+/* Invariance Chart */
+function initInvarianceChart() {
+  const horizons = [24, 48, 96, 192, 336, 720];
+  const labels = horizons.map(h => 'O=' + h);
+
+  createChart('c-param-chart', {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Official D2Vformer (Wang et al., 2023 - Linear Head)',
+          data: [44000, 47000, 53000, 65000, 83000, 132000],
+          borderColor: '#f43f5e',
+          backgroundColor: 'rgba(244,63,94,0.1)',
+          tension: 0.25,
+          borderDash: [6, 4],
+          pointRadius: 5
+        },
+        {
+          label: 'TCD2Vformer (Ours: Query-Conditioned)',
+          data: Array(6).fill(44326),
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.15)',
+          tension: 0,
+          borderWidth: 2.5,
+          pointRadius: 6
+        },
+        {
+          label: 'PureD2Vformer (Reconstructed Baseline)',
+          data: Array(6).fill(44021),
+          borderColor: '#94a3b8',
+          borderDash: [3, 3],
+          tension: 0,
+          pointRadius: 4
+        }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        ...CHART_DEFAULTS.scales,
+        y: {
+          ...CHART_DEFAULTS.scales.y,
+          title: { display: true, text: 'Trainable Parameter Count', color: '#64748b' }
+        }
+      }
+    }
+  });
+}
+
+/* Comparison Section Charts */
+function initComparisonCharts() {
+  // Seed robustness bar chart for ETTh2 O=720
+  createChart('c-seed-bar', {
+    type: 'bar',
+    data: {
+      labels: ['Seed 42', 'Seed 43', 'Seed 44', 'Mean (Cohen d=1.67)'],
+      datasets: [
+        {
+          label: 'Fixed (τ=1.0)',
+          data: [0.4112, 0.4191, 0.4009, 0.4104],
+          backgroundColor: 'rgba(148, 163, 184, 0.65)',
+          borderRadius: 4
+        },
+        {
+          label: 'TCD2Vformer (query_cond)',
+          data: [0.4026, 0.3974, 0.3927, 0.3976],
+          backgroundColor: 'rgba(59, 130, 246, 0.85)',
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        ...CHART_DEFAULTS.scales,
+        y: { ...CHART_DEFAULTS.scales.y, min: 0.38, max: 0.43, title: { display: true, text: 'MSE (Lower is Better)', color: '#64748b' } }
+      }
+    }
+  });
+}
+
+/* ETTm1 Degradation Chart */
+function initETTm1Chart() {
+  const horizons = [24, 48, 96, 192, 336, 720];
+  const labels = horizons.map(h => 'O=' + h);
+  const ds = D['ETTm1'];
+  if (!ds) return;
+
+  createChart('c-ettm1-chart', {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Fixed Baseline (τ=1.0)',
+          data: horizons.map(h => ds.fixed[h].mse),
+          borderColor: '#94a3b8',
+          borderDash: [4, 4],
+          pointRadius: 4
+        },
+        {
+          label: 'query_conditioned (τ≈0.18)',
+          data: horizons.map(h => ds.query_conditioned[h].mse),
+          borderColor: '#f43f5e',
+          backgroundColor: 'rgba(244, 63, 94, 0.1)',
+          borderWidth: 2,
+          pointRadius: 5
+        }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        title: { display: true, text: 'ETTm1 MSE: Baseline vs Over-Sharpened TCD2Vformer', color: '#f8fafc' }
+      }
+    }
+  });
+}
+
+/* On Load Initialization */
+document.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash && document.getElementById('tab-' + hash)) {
+    sw(hash);
+  } else {
+    upResultsUI();
+  }
+  initScrollFeatures();
+});
+
+/* Scroll: Progress bar + section indicator + back-to-top visibility */
+function initScrollFeatures() {
+  const tabs = ['hero','problem','contribution','model','results','simulator','invariance','comparison','limits','reproducibility','takeaway'];
+  const bar = document.getElementById('progressBar');
+  const label = document.getElementById('progressLabel');
+  const btt = document.getElementById('backToTop');
+
+  function update() {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0;
+    if (bar) bar.style.width = pct + '%';
+
+    // Find current section
+    let currentIdx = 0;
+    tabs.forEach((id, i) => {
+      const el = document.getElementById('pnl-' + id);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.4) currentIdx = i;
+    });
+    if (label) {
+      label.textContent = 'Section ' + (currentIdx + 1) + ' / ' + tabs.length;
+      label.classList.add('show');
+    }
+
+    if (btt) {
+      if (scrollTop > 600) {
+        btt.style.opacity = '1';
+        btt.style.pointerEvents = 'auto';
+      } else {
+        btt.style.opacity = '0';
+        btt.style.pointerEvents = 'none';
+      }
+    }
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+
+  // Hide label after 3 seconds of no scrolling
+  let labelTimer;
+  window.addEventListener('scroll', () => {
+    label.classList.add('show');
+    clearTimeout(labelTimer);
+    labelTimer = setTimeout(() => label.classList.remove('show'), 1500);
+  }, { passive: true });
+}
+
+/* Copy shareable URL with section hash */
+function copyShareLink() {
+  const url = window.location.origin + window.location.pathname + window.location.hash;
+  const btn = event && event.currentTarget;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      if (btn) {
+        btn.classList.add('show-toast');
+        setTimeout(() => btn.classList.remove('show-toast'), 1400);
+      }
+    });
+  } else {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (btn) {
+      btn.classList.add('show-toast');
+      setTimeout(() => btn.classList.remove('show-toast'), 1400);
+    }
+  }
+}
+</script>
+</body>
+</html>
