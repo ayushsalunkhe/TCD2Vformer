@@ -141,7 +141,7 @@ If you find this work or our empirical audit helpful in your research, please co
 
 ```bibtex
 @misc{salunkhe2026tcd2vformer,
-  author = {Salunkhe, Ayush Harish and Team},
+  author = {Ayush Harish Salunkhe},
   title = {TCD2Vformer: Temporal-Conditioned Date2Vecformer for Horizon-Independent Time-Series Forecasting},
   year = {2026},
   publisher = {GitHub},
