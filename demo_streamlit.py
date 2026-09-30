@@ -105,7 +105,6 @@ SHOWCASE_SAMPLES = {
 # Sidebar
 # ------------------------------------------------------------------
 meta = load_metadata()
-mean, std = meta["mean"], meta["std"]
 df_raw = load_raw_etth2()
 n_total = len(df_raw)
 test_start_idx = int(n_total * 0.8)
@@ -165,8 +164,7 @@ with st.sidebar:
 # ------------------------------------------------------------------
 @st.cache_data(show_spinner="Running inference on both checkpoints…")
 def run_inference(horizon: int, sample_idx: int, seed: int):
-    fixed, _, _, _ = load_models(seed)
-    ours, _, _, _ = load_models(seed)
+    fixed, ours, _, _ = load_models(seed)
 
     _, _, test_loader, _ = get_data_loaders(
         "ETTh2", seq_len=96, pred_len=horizon, batch_size=128
@@ -228,10 +226,16 @@ truth = res["truth_y"]
 fc_fixed_arr = res["fc_fixed"]
 fc_ours_arr = res["fc_ours"]
 
-# Build date arrays (test starts at test_start_date; each window is +96h past)
-past_end_date = test_start_date + pd.Timedelta(hours=96 * (sample_idx + 1))
-past_dates = pd.date_range(end=past_end_date, periods=96, freq="h")
-fc_dates = pd.date_range(start=past_end_date, periods=horizon + 1, freq="h")[1:]
+# Build date arrays that exactly match the window returned by get_data_loaders().
+# Sample 0 starts at test_start_date; each sample advances by one hour.
+sample_start_date = test_start_date + pd.Timedelta(hours=sample_idx)
+past_dates = pd.date_range(start=sample_start_date, periods=96, freq="h")
+past_end_date = past_dates[-1]
+fc_dates = pd.date_range(
+    start=past_end_date + pd.Timedelta(hours=1),
+    periods=horizon,
+    freq="h",
+)
 
 
 # ------------------------------------------------------------------
@@ -280,19 +284,15 @@ with col_left:
         line=dict(color="#5b9cff", width=2.5),
         hovertemplate="<b>%{x|%a %d %b %H:%M}</b><br>value = %{y:.3f}<extra>past</extra>",
     ))
-    # D²Vformer forecast — pink with markers AND a small downward offset
-    # so the green (drawn later) cannot hide it. Forecasts are within
-    # ~0.04 of each other, so without an offset they overplot completely.
-    PINK_OFFSET = -0.08  # in standardized units (same scale as y-axis)
+    # D²Vformer forecast is plotted at its true value. Distinct markers
+    # and line styles keep it visible without altering the data.
     fig.add_trace(go.Scatter(
-        x=fc_dates, y=fc_fixed_arr + PINK_OFFSET,
-        name=f"D²Vformer forecast (τ = 1.0, offset {PINK_OFFSET:+.2f})",
-        line=dict(color="#fb7185", width=2.8, dash="dash"),
-        marker=dict(size=6, color="#fb7185", symbol="circle",
+        x=fc_dates, y=fc_fixed_arr,
+        name="D²Vformer forecast (τ = 1.0)",
+        line=dict(color="#fb7185", width=2.8, dash="dot"),
+        marker=dict(size=5, color="#fb7185", symbol="circle",
                     line=dict(color="#fb7185", width=1)),
-        hovertemplate="<b>%{x|%a %d %b %H:%M}</b><br>value = %{y:.3f}<br>"
-                      "<i>(true: %{customdata:.3f})</i><extra>baseline (offset)</extra>",
-        customdata=fc_fixed_arr,
+        hovertemplate="<b>%{x|%a %d %b %H:%M}</b><br>value = %{y:.3f}<extra>baseline</extra>",
     ))
     # TCD²Vformer forecast — green (drawn after pink so it stays on top)
     fig.add_trace(go.Scatter(
@@ -314,14 +314,14 @@ with col_left:
         line=dict(color="rgba(255,255,255,0.30)", width=1, dash="dot"),
     )
 
-    # Tight y-axis: include forecasts (and pink offset) so the gap between
-    # baseline and ours is amplified. Plotly's default autorange would
-    # otherwise span the full truth range and wash out the difference.
-    fc_min = float(min(fc_fixed_arr.min() + PINK_OFFSET, fc_ours_arr.min()))
-    fc_max = float(max(fc_fixed_arr.max() + PINK_OFFSET, fc_ours_arr.max()))
-    fc_pad = max(0.05, (fc_max - fc_min) * 0.5)
-    y_lo = fc_min - fc_pad
-    y_hi = fc_max + fc_pad
+    # Include every plotted series in the y-axis range so no data is clipped.
+    all_y = np.concatenate([past, truth, fc_fixed_arr, fc_ours_arr])
+    data_min = float(np.nanmin(all_y))
+    data_max = float(np.nanmax(all_y))
+    data_span = max(data_max - data_min, 0.1)
+    y_pad = max(0.05, data_span * 0.08)
+    y_lo = data_min - y_pad
+    y_hi = data_max + y_pad
 
     fig.update_layout(
         height=520,
@@ -343,9 +343,8 @@ with col_left:
     )
     st.plotly_chart(fig, use_container_width=True)
     st.caption(
-        f"Pink D²Vformer line is shifted by {PINK_OFFSET:+.2f} "
-        "so it stays visible below the green TCD²Vformer line. "
-        "Hover any pink point to see its un-offset value."
+        "Both forecast lines are plotted at their true predicted values; "
+        "different markers and line styles distinguish overlapping forecasts."
     )
 
 with col_right:
