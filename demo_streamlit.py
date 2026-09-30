@@ -177,9 +177,16 @@ def run_inference(horizon: int, sample_idx: int, seed: int):
     bx = by = bxm = bym = None
     for b_idx, (bxb, byb, bxmb, bymb) in enumerate(test_loader):
         if b_idx == target_batch:
-            bx, by, bxm, bym = bxb, byb, bxmb, bymb
+            bx = bxb[target_in_batch:target_in_batch + 1]
+            by = byb[target_in_batch:target_in_batch + 1]
+            bxm = bxmb[target_in_batch:target_in_batch + 1]
+            bym = bymb[target_in_batch:target_in_batch + 1]
             break
-    bx, by, bxm, bym = bx[:1], by[:1], bxm[:1], bym[:1]
+
+    if bx is None:
+        raise IndexError(
+            f"Test window index {sample_idx} is outside the available test set."
+        )
 
     with torch.no_grad():
         fc_fixed, A_fixed, tau_fixed = fixed(bx, bxm, bym, return_attention=True)
